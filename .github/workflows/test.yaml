@@ -1,0 +1,15 @@
+on:
+  push:
+    branches: ["main"]
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v5
+      - uses: ApeWorX/github-action@v3
+      - run: ape compile
+      - run: pip install .
+      - run: ape test -s

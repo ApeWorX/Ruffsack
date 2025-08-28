@@ -1,0 +1,32 @@
+[build-system]
+requires = ["setuptools", "setuptools-scm"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "ruffsack"
+version = "0.1.0"
+description = "Ruffsack: A rugged multisig wallet for everyday adventures"
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+    "eth-ape>=0.8.37",
+]
+
+[[project.authors]]
+name = "ApeWorX LTD"
+
+[project.scripts]
+ruffsack = "ruffsack.__main__:cli"
+
+[tool.setuptools]
+packages = ["ruffsack"]
+[tool.setuptools.package-data]
+ruffsack = ["manifests/*.json"]
+
+[tool.setuptools_scm]
+# NOTE: Required for `setuptools-scm` to function
+
+[[tool.ape.plugins]]
+name = "solidity"
+[[tool.ape.plugins]]
+name = "vyper"
