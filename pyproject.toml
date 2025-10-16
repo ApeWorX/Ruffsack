@@ -28,6 +28,4 @@ ruffsack = ["manifests/*.json"]
 # NOTE: Required for `setuptools-scm` to function
 
 [[tool.ape.plugins]]
-name = "solidity"
-[[tool.ape.plugins]]
 name = "vyper"
