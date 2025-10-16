@@ -8,6 +8,7 @@ from packaging.version import Version
 
 class ModifyBase(EIP712Message):
     _name_ = "Ruffsack Wallet"
+    parent: "bytes32"
     action: "uint256"  # type: ignore
     data: "bytes"
 
@@ -22,6 +23,7 @@ class ActionType(Flag):
 
     def __call__(
         self,
+        parent: bytes,
         *args,
         version: Version | None = None,
         address: AddressType | None = None,
@@ -46,6 +48,7 @@ class ActionType(Flag):
                 arg_types = ("address",)
 
         return Modify(  # type: ignore[call-arg]
+            parent=parent,
             action=self.value,
             data=abi_encode(arg_types, args),
         )

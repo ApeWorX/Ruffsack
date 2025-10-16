@@ -40,6 +40,7 @@ def test_execute(
     accounts, chain, VERSION, THRESHOLD, owners, sack, approval_flow, calls
 ):
     txn = Execute(
+        parent=sack.head(),
         version=VERSION,
         address=sack.address,
         chain_id=chain.chain_id,
@@ -75,3 +76,4 @@ def test_execute(
         if total_calls > 0
         else []
     )
+    assert sack.head() == txn.message._message_hash_
