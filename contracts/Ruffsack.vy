@@ -15,7 +15,7 @@ EIP712_DOMAIN_TYPEHASH: constant(bytes32) = keccak256(
     "EIP712Domain(string name,string version,uint256 chainId,address verifyingContract)"
 )
 MODIFY_TYPEHASH: constant(bytes32) = keccak256(
-    "Modify(uint256 action,bytes data)"
+    "Modify(bytes32 parent,uint256 action,bytes data)"
 )
 
 struct Call:
@@ -29,7 +29,7 @@ CALL_TYPEHASH: constant(bytes32) = keccak256(
     "Call(address target,uint256 value,bytes data)"
 )
 EXECUTE_TYPEHASH: constant(bytes32) = keccak256(
-    "Execute(Call[] calls)Call(address target,uint256 value,bytes data)"
+    "Execute(bytes32 parent,Call[] calls)Call(address target,uint256 value,bytes data)"
 )
 
 # @dev The current implementation address for `RuffsackProxy`
@@ -43,6 +43,9 @@ signers: public(DynArray[address, 11])
 # @dev Number of signers required to execute an action
 threshold: public(uint256)
 # NOTE: invariant `0 < threshold <= len(signers)`
+
+# @dev The last message hash (`Modify` or `Execute` struct) that was executed
+head: public(bytes32)
 
 # @dev Set of pre-approved transaction hashes, indexed by signer
 approved: public(HashMap[bytes32, HashMap[address, bool]])
@@ -247,10 +250,11 @@ def modify(
     # NOTE: Skip argument to use on-chain approvals
 ):
     msghash: bytes32 = self._hash_typed_data_v4(
-        # NOTE: Per EIP712, Dynamic ABI types are encoded as the hash of their contents
-        keccak256(abi_encode(MODIFY_TYPEHASH, action, keccak256(data)))
+        # NOTE: Per EIP712, Dynamic structures are encoded as the hash of their contents
+        keccak256(abi_encode(MODIFY_TYPEHASH, self.head, action, keccak256(data)))
     )
     self._verify_signatures(msghash, signatures)
+    self.head = msghash
 
     admin_guard: IAdminGuard = self.admin_guard
     if admin_guard.address != empty(address):
@@ -332,9 +336,10 @@ def execute(
         # Step 3: Hash concatenated item hashes, together with typehash, then with domain to get msghash
         msghash: bytes32 = self._hash_typed_data_v4(
             # NOTE: Per EIP712, Arrays are encoded as the hash of their encoded members, concated together
-            keccak256(abi_encode(EXECUTE_TYPEHASH, keccak256(encoded_call_array)))
+            keccak256(abi_encode(EXECUTE_TYPEHASH, self.head, keccak256(encoded_call_array)))
         )
         self._verify_signatures(msghash, signatures)
+        self.head = msghash
 
     guard: IExecuteGuard = self.execute_guard
     for call: Call in calls:

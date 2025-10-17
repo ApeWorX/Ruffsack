@@ -1,5 +1,6 @@
 from typing import TYPE_CHECKING, Self
 
+from ape.types import HexBytes
 from ape.utils import ManagerAccessMixin
 from eip712 import EIP712Message, EIP712Type
 
@@ -17,17 +18,24 @@ class Call(EIP712Type):
 class ExecuteBase(EIP712Message):
     _name_ = "Ruffsack Wallet"
 
+    parent: "bytes32"
     calls: list[Call] = []
 
 
 class Execute(ManagerAccessMixin):
-    def __init__(self, version: "Version", address: "AddressType", chain_id: int):
+    def __init__(
+        self,
+        parent: HexBytes,
+        version: "Version",
+        address: "AddressType",
+        chain_id: int,
+    ):
         class Execute(ExecuteBase):
             _verifyingContract_ = address
             _version_ = str(version)
             _chainId_ = chain_id
 
-        self.message = Execute()
+        self.message = Execute(parent=parent)
 
     def add_raw(self, target: "AddressType", value: int = 0, data: bytes = b"") -> Self:
         self.message.calls.append(Call(target=target, value=value, data=data))
