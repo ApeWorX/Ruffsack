@@ -104,3 +104,8 @@ def new_sack(deployer, factory, create_release):
 @pytest.fixture(scope="session")
 def sack(VERSION, owners, THRESHOLD, new_sack):
     return new_sack(owners, THRESHOLD, version=VERSION, sender=owners[0])
+
+
+@pytest.fixture(params=["onchain", "offchain"])
+def approval_flow(request):
+    return request.param
