@@ -21,6 +21,7 @@ MODIFY_TYPEHASH: constant(bytes32) = keccak256(
 struct Call:
     target: address
     value: uint256
+    # TODO: Increase size to 65535 once Vyper improves memory allocation (gas costs too high)
     data: Bytes[2052]
 
 
