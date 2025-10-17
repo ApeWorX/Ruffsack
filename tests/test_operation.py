@@ -1,6 +1,7 @@
 import ape
+import pytest
 from ape.utils.misc import ZERO_ADDRESS
-from ruffsack.messages import create_execute_def
+from ruffsack.messages import Execute
 
 
 def test_configuration(networks, VERSION, THRESHOLD, owners, sack):
@@ -34,21 +35,34 @@ def test_initialize(THRESHOLD, owners, singleton, sack):
         sack.initialize(owners, THRESHOLD, sender=owners[0])
 
 
-def test_execute(chain, VERSION, owners, sack):
-    Execute = create_execute_def(
+@pytest.mark.parametrize("calls", ["0_calls", "1_call", "2_calls"])
+def test_execute(accounts, chain, VERSION, owners, sack, calls):
+    txn = Execute(
         version=VERSION,
         address=sack.address,
         chain_id=chain.chain_id,
     )
-    msg = Execute(target=owners[0].address, value=0, data=b"")
-    signatures = [o.sign_message(msg).encode_rsv() for o in owners]
-    receipt = sack.execute(*msg, signatures, sender=owners[0])
 
-    assert receipt.events == [
-        sack.Executed(
-            executor=owners[0],
-            target=owners[0],
-            value=0,
-            data=b"",
-        ),
-    ]
+    for idx in range(total_calls := int(calls.split("_")[0])):
+        txn.add_raw(
+            target=accounts[idx].address,
+            value=idx,
+            data=f"{idx}".encode("utf-8"),
+        )
+
+    signatures = [o.sign_message(txn.message).encode_rsv() for o in owners]
+    receipt = sack.execute(txn.message.calls, signatures, sender=owners[0])
+
+    assert receipt.events == (
+        [
+            sack.Executed(
+                executor=owners[0],
+                target=account,
+                value=idx,
+                data=f"{idx}".encode("utf-8"),
+            )
+            for idx, account in enumerate(accounts[:total_calls])
+        ]
+        if total_calls > 0
+        else []
+    )

@@ -17,8 +17,18 @@ EIP712_DOMAIN_TYPEHASH: constant(bytes32) = keccak256(
 MODIFY_TYPEHASH: constant(bytes32) = keccak256(
     "Modify(uint256 action,bytes data)"
 )
+
+struct Call:
+    target: address
+    value: uint256
+    data: Bytes[2052]
+
+
+CALL_TYPEHASH: constant(bytes32) = keccak256(
+    "Call(address target,uint256 value,bytes data)"
+)
 EXECUTE_TYPEHASH: constant(bytes32) = keccak256(
-    "Execute(address target,uint256 value,bytes data)"
+    "Execute(Call[] calls)Call(address target,uint256 value,bytes data)"
 )
 
 # @dev The current implementation address for `RuffsackProxy`
@@ -48,7 +58,7 @@ interface IAdminGuard:
 admin_guard: public(IAdminGuard)
 
 interface IExecuteGuard:
-    def preExecuteCheck(target: address, eth_value: uint256, data: Bytes[65535]): nonpayable
+    def preExecuteCheck(call: Call): nonpayable
     def postExecuteCheck(): nonpayable
 
 # @dev Before/after checker for Execute actions
@@ -99,7 +109,7 @@ event Executed:
     success: indexed(bool)
     target: indexed(address)
     value: uint256
-    data: Bytes[65535]
+    data: Bytes[2052]
 
 
 # NOTE: IERC5267
@@ -211,7 +221,7 @@ def modify(
     signatures: DynArray[Bytes[65], 11],
 ):
     msghash: bytes32 = self._hash_typed_data_v4(
-        # NOTE: Per EIP712, Dynamic structures are encoded as the hash of their contents
+        # NOTE: Per EIP712, Dynamic ABI types are encoded as the hash of their contents
         keccak256(abi_encode(MODIFY_TYPEHASH, action, keccak256(data)))
     )
     self._verify_signatures(msghash, signatures)
@@ -263,32 +273,62 @@ def modify(
 
 @external
 def execute(
-    target: address,
-    eth_value: uint256,
-    data: Bytes[65535],
+    calls: DynArray[Call, 100],
     signatures: DynArray[Bytes[65], 11] = [],
 ):
     if not self.module_enabled[msg.sender]:
+        # Hash message and validate signatures
+
+        # Step 1: Encode struct to list of 32 byte hash of items
+        encoded_call_members: DynArray[bytes32, 100] = []
+        for call: Call in calls:
+            encoded_call_members.append(
+                # NOTE: Per EIP712, structs are encoded as the hash of their contents (incl. Typehash)
+                keccak256(
+                    abi_encode(
+                        CALL_TYPEHASH,
+                        call.target,
+                        call.value,
+                        # NOTE: Per EIP712, Dynamic ABI types are encoded as the hash of their contents
+                        keccak256(call.data),
+                    )
+                )
+            )
+
+        # Step 2: Encode list of 32 byte items into single bytestring
+        # NOTE: bytestring length including length because it's encoded as an array
+        encoded_call_array: Bytes[32 * (100 + 1)] = abi_encode(encoded_call_members, ensure_tuple=False)
+        # NOTE: Skip encoded length of encoded bytestring by slicing it off (start at byte 32)
+        encoded_call_array = slice(encoded_call_array, 32, len(encoded_call_array) - 32)
+        assert len(encoded_call_array) == 32 * len(calls)
+
+        # Step 3: Hash concatenated item hashes, together with typehash, then with domain to get msghash
         msghash: bytes32 = self._hash_typed_data_v4(
-            # NOTE: Per EIP712, Dynamic structures are encoded as the hash of their contents
-            keccak256(abi_encode(EXECUTE_TYPEHASH, target, eth_value, keccak256(data)))
+            # NOTE: Per EIP712, Arrays are encoded as the hash of their encoded members, concated together
+            keccak256(abi_encode(EXECUTE_TYPEHASH, keccak256(encoded_call_array)))
         )
         self._verify_signatures(msghash, signatures)
 
     guard: IExecuteGuard = self.execute_guard
-    if guard.address != empty(address):
-        extcall guard.preExecuteCheck(target, eth_value, data)
+    for call: Call in calls:
+        if guard.address != empty(address):
+            extcall guard.preExecuteCheck(call)
 
-    # NOTE: No delegatecalls allowed (cannot modify configuration via `update` this way)
-    success: bool = raw_call(target, data, value=eth_value, revert_on_failure=False)
+        # NOTE: No delegatecalls allowed (cannot modify configuration via `update` this way)
+        success: bool = raw_call(
+            call.target,
+            call.data,
+            value=call.value,
+            revert_on_failure=False,
+        )
 
-    if guard.address != empty(address):
-        extcall guard.postExecuteCheck()
+        if guard.address != empty(address):
+            extcall guard.postExecuteCheck()
 
-    log Executed(
-        executor=msg.sender,
-        success=success,
-        target=target,
-        value=eth_value,
-        data=data,
-    )
+        log Executed(
+            executor=msg.sender,
+            success=success,
+            target=call.target,
+            value=call.value,
+            data=call.data,
+        )
