@@ -21,8 +21,8 @@ MODIFY_TYPEHASH: constant(bytes32) = keccak256(
 struct Call:
     target: address
     value: uint256
-    # TODO: Increase size to 65535 once Vyper improves memory allocation (gas costs too high)
-    data: Bytes[2052]
+    # TODO: Increase size to 65540 once Vyper improves memory allocation (gas costs too high)
+    data: Bytes[16388]
 
 
 CALL_TYPEHASH: constant(bytes32) = keccak256(
@@ -110,7 +110,7 @@ event Executed:
     success: indexed(bool)
     target: indexed(address)
     value: uint256
-    data: Bytes[2052]
+    data: Bytes[16388]
 
 
 # NOTE: IERC5267
@@ -274,14 +274,14 @@ def modify(
 
 @external
 def execute(
-    calls: DynArray[Call, 100],
+    calls: DynArray[Call, 8],
     signatures: DynArray[Bytes[65], 11] = [],
 ):
     if not self.module_enabled[msg.sender]:
         # Hash message and validate signatures
 
         # Step 1: Encode struct to list of 32 byte hash of items
-        encoded_call_members: DynArray[bytes32, 100] = []
+        encoded_call_members: DynArray[bytes32, 8] = []
         for call: Call in calls:
             encoded_call_members.append(
                 # NOTE: Per EIP712, structs are encoded as the hash of their contents (incl. Typehash)
@@ -298,7 +298,7 @@ def execute(
 
         # Step 2: Encode list of 32 byte items into single bytestring
         # NOTE: bytestring length including length because it's encoded as an array
-        encoded_call_array: Bytes[32 * (100 + 1)] = abi_encode(encoded_call_members, ensure_tuple=False)
+        encoded_call_array: Bytes[32 * (8 + 1)] = abi_encode(encoded_call_members, ensure_tuple=False)
         # NOTE: Skip encoded length of encoded bytestring by slicing it off (start at byte 32)
         encoded_call_array = slice(encoded_call_array, 32, len(encoded_call_array) - 32)
         assert len(encoded_call_array) == 32 * len(calls)
