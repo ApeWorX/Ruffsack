@@ -39,9 +39,13 @@ IMPLEMENTATION: public(address)
 # Signer properties
 # @dev All current signers (unordered)
 signers: public(DynArray[address, 11])
+
 # @dev Number of signers required to execute an action
 threshold: public(uint256)
 # NOTE: invariant `0 < threshold <= len(signers)`
+
+# @dev Set of pre-approved transaction hashes, indexed by signer
+approved: public(HashMap[bytes32, HashMap[address, bool]])
 
 flag ActionType:
     UPGRADE_IMPLEMENTATION
@@ -147,11 +151,31 @@ def initialize(signers: DynArray[address, 11], threshold: uint256):
     self.threshold = threshold
 
 
-def _verify_signatures(msghash: bytes32, signatures: DynArray[Bytes[65], 11]):
-    assert len(signatures) >= self.threshold
-    signers: DynArray[address, 11] = self.signers
+@external
+def set_approval(msghash: bytes32, approved: bool = True):
+    assert msg.sender in self.signers, "Not a signer"
+    self.approved[msghash][msg.sender] = approved
 
+
+def _verify_signatures(msghash: bytes32, signatures: DynArray[Bytes[65], 11]):
+    approvals_needed: uint256 = self.threshold
+    signers: DynArray[address, 11] = self.signers
     already_approved: DynArray[address, 11] = []
+
+    for signer: address in signers:
+        if self.approved[msghash][signer]:
+            already_approved.append(signer)  # NOTE: Track for use in next loop
+            approvals_needed -= 1  # dev: underflow
+            # NOTE: Get some gas back by deleting storage
+            self.approved[msghash][signer] = False
+
+        if approvals_needed == 0:
+            return  # Skip signature verification because we have enough pre-approvals
+
+    assert len(signatures) >= approvals_needed, "Not enough approvals"
+
+    # NOTE: We already checked that we have enough signatures,
+    #       this loops checks uniqueness/membership of recovered signers
     for sig: Bytes[65] in signatures:
         # NOTE: Signatures should be 65 bytes in RSV order
         r: bytes32 = convert(slice(sig, 0, 32), bytes32)
@@ -219,7 +243,8 @@ def _rotate_signers(
 def modify(
     action: ActionType,
     data: Bytes[65535],
-    signatures: DynArray[Bytes[65], 11],
+    signatures: DynArray[Bytes[65], 11] = [],
+    # NOTE: Skip argument to use on-chain approvals
 ):
     msghash: bytes32 = self._hash_typed_data_v4(
         # NOTE: Per EIP712, Dynamic ABI types are encoded as the hash of their contents
@@ -276,6 +301,7 @@ def modify(
 def execute(
     calls: DynArray[Call, 8],
     signatures: DynArray[Bytes[65], 11] = [],
+    # NOTE: Skip argument to use on-chain approvals, or for module use
 ):
     if not self.module_enabled[msg.sender]:
         # Hash message and validate signatures

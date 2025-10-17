@@ -1,7 +1,9 @@
 from ruffsack.messages import ActionType
 
 
-def test_upgrade(chain, VERSION, singleton, create_release, sack, owners):
+def test_upgrade(
+    chain, VERSION, THRESHOLD, singleton, create_release, sack, owners, approval_flow
+):
     new_impl = create_release()
 
     msg = ActionType.UPGRADE_IMPLEMENTATION(
@@ -10,8 +12,16 @@ def test_upgrade(chain, VERSION, singleton, create_release, sack, owners):
         address=sack.address,
         chain_id=chain.chain_id,
     )
-    signatures = [o.sign_message(msg).encode_rsv() for o in owners]
-    receipt = sack.modify(msg.action, msg.data, signatures, sender=owners[0])
+
+    args = [msg.action, msg.data]
+    if approval_flow == "onchain":
+        for owner in owners[:THRESHOLD]:
+            sack.set_approval(msg._message_hash_, sender=owner)
+
+    else:
+        args.append([o.sign_message(msg).encode_rsv() for o in owners])
+
+    receipt = sack.modify(*args, sender=owners[0])
 
     assert receipt.events == [
         sack.ImplementationUpgraded(
@@ -23,7 +33,9 @@ def test_upgrade(chain, VERSION, singleton, create_release, sack, owners):
     assert sack.IMPLEMENTATION() == new_impl
 
 
-def test_rotate_signers(accounts, chain, VERSION, sack, owners):
+def test_rotate_signers(
+    accounts, chain, VERSION, THRESHOLD, sack, owners, approval_flow
+):
     msg = ActionType.ROTATE_SIGNERS(
         [accounts[len(owners)].address],
         [owners[0].address],
@@ -32,8 +44,16 @@ def test_rotate_signers(accounts, chain, VERSION, sack, owners):
         address=sack.address,
         chain_id=chain.chain_id,
     )
-    signatures = [o.sign_message(msg).encode_rsv() for o in owners]
-    receipt = sack.modify(msg.action, msg.data, signatures, sender=owners[0])
+
+    args = [msg.action, msg.data]
+    if approval_flow == "onchain":
+        for owner in owners[:THRESHOLD]:
+            sack.set_approval(msg._message_hash_, sender=owner)
+
+    else:
+        args.append([o.sign_message(msg).encode_rsv() for o in owners])
+
+    receipt = sack.modify(*args, sender=owners[0])
 
     assert receipt.events == [
         sack.SignersRotated(

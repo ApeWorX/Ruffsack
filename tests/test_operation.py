@@ -36,7 +36,9 @@ def test_initialize(THRESHOLD, owners, singleton, sack):
 
 
 @pytest.mark.parametrize("calls", ["0_calls", "1_call", "2_calls"])
-def test_execute(accounts, chain, VERSION, owners, sack, calls):
+def test_execute(
+    accounts, chain, VERSION, THRESHOLD, owners, sack, approval_flow, calls
+):
     txn = Execute(
         version=VERSION,
         address=sack.address,
@@ -50,8 +52,15 @@ def test_execute(accounts, chain, VERSION, owners, sack, calls):
             data=f"{idx}".encode("utf-8"),
         )
 
-    signatures = [o.sign_message(txn.message).encode_rsv() for o in owners]
-    receipt = sack.execute(txn.message.calls, signatures, sender=owners[0])
+    args = [txn.message.calls]
+    if approval_flow == "onchain":
+        for owner in owners[:THRESHOLD]:
+            sack.set_approval(txn.message._message_hash_, sender=owner)
+
+    else:
+        args.append([o.sign_message(txn.message).encode_rsv() for o in owners])
+
+    receipt = sack.execute(*args, sender=owners[0])
 
     assert receipt.events == (
         [
