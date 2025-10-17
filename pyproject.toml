@@ -10,6 +10,7 @@ readme = "README.md"
 requires-python = ">=3.10"
 dependencies = [
     "eth-ape>=0.8.37",
+    "eip712>=0.2.14",  # NOTE: Pin because an important fix is needed
 ]
 
 [[project.authors]]
