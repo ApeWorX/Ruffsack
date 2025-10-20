@@ -11,6 +11,9 @@ PROXY_INITCODE: public(immutable(Bytes[1024]))
 # @dev The owner of the release registry that is allowed to add new releases.
 governance: public(address)
 
+interface IRuffsack:
+    def VERSION() -> String[12]: view
+
 # @dev The registered release implementations
 releases: public(HashMap[String[12], address])
 last_release: public(String[12])
@@ -40,11 +43,14 @@ def __init__(governance: address, proxy_initcode: Bytes[1024]):
 
 
 @external
-def add_release(version: String[12], implementation: address):
+def add_release(implementation: IRuffsack):
     assert msg.sender == self.governance
+
+    version: String[12] = staticcall implementation.VERSION()
     assert self.releases[version] == empty(address)
-    log NewRelease(version=version, implementation=implementation)
-    self.releases[version] = implementation
+
+    log NewRelease(version=version, implementation=implementation.address)
+    self.releases[version] = implementation.address
     self.last_release = version
 
 
