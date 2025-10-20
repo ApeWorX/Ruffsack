@@ -1,10 +1,11 @@
+from packaging.version import Version
 from ruffsack.messages import ActionType
 
 
 def test_upgrade(
     chain, VERSION, THRESHOLD, singleton, create_release, sack, owners, approval_flow
 ):
-    new_impl = create_release()
+    new_impl = create_release(version=Version(f"{VERSION}+post.0"))
 
     msg = ActionType.UPGRADE_IMPLEMENTATION(
         sack.head(),
