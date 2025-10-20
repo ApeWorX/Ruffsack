@@ -7,6 +7,7 @@ def test_upgrade(
     new_impl = create_release()
 
     msg = ActionType.UPGRADE_IMPLEMENTATION(
+        sack.head(),
         new_impl.address,
         version=VERSION,
         address=sack.address,
@@ -32,11 +33,14 @@ def test_upgrade(
     ]
     assert sack.IMPLEMENTATION() == new_impl
 
+    assert sack.head() == msg._message_hash_
+
 
 def test_rotate_signers(
     accounts, chain, VERSION, THRESHOLD, sack, owners, approval_flow
 ):
     msg = ActionType.ROTATE_SIGNERS(
+        sack.head(),
         [accounts[len(owners)].address],
         [owners[0].address],
         sack.threshold(),
@@ -66,3 +70,5 @@ def test_rotate_signers(
     ]
     assert sack.signers(0) == accounts[1]
     assert sack.signers(len(owners) - 1) == accounts[len(owners)]
+
+    assert sack.head() == msg._message_hash_
