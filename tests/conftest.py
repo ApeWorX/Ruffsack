@@ -61,7 +61,8 @@ def create_release(VERSION, deployer, governance, factory):
         creator: "AccountAPI | None" = None,
     ) -> "ContractInstance":
         singleton = (creator or deployer).deploy(
-            PackageType.SINGLETON(version or VERSION)
+            PackageType.SINGLETON(VERSION),
+            str(version or VERSION),  # Allows over-writing version
         )
 
         if version is None:

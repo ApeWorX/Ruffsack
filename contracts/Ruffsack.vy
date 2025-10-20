@@ -8,8 +8,8 @@
 NAME: constant(String[15]) = "Ruffsack Wallet"
 NAMEHASH: constant(bytes32) = keccak256(NAME)
 # NOTE: Update this before each release (controls EIP712 Domain)
-VERSION: public(constant(String[10])) = "0.1"
-VERSIONHASH: constant(bytes32) = keccak256(VERSION)
+VERSION: public(immutable(String[12]))
+VERSIONHASH: immutable(bytes32)
 
 EIP712_DOMAIN_TYPEHASH: constant(bytes32) = keccak256(
     "EIP712Domain(string name,string version,uint256 chainId,address verifyingContract)"
@@ -118,6 +118,12 @@ event Executed:
     target: indexed(address)
     value: uint256
     data: Bytes[16388]
+
+
+@deploy
+def __init__(version: String[12]):
+    VERSION = version
+    VERSIONHASH = keccak256(version)
 
 
 # NOTE: IERC5267
