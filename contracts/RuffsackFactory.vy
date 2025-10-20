@@ -5,7 +5,8 @@
 @author ApeWorX LTD.
 """
 
-PROXY_BLUEPRINT: public(immutable(address))
+PROXY_INITCODE: public(immutable(Bytes[1024]))
+
 
 # @dev The owner of the release registry that is allowed to add new releases.
 governance: public(address)
@@ -33,9 +34,9 @@ event NewRuffsack:
 
 
 @deploy
-def __init__(proxy_blueprint: address, governance: address):
-    PROXY_BLUEPRINT = proxy_blueprint
+def __init__(governance: address, proxy_initcode: Bytes[1024]):
     self.governance = governance
+    PROXY_INITCODE = proxy_initcode
 
 
 @external
@@ -60,13 +61,13 @@ def new(
     else:
         implementation = self.releases[version]
 
-    assert implementation != empty(address)
+    assert implementation != empty(address), "Invalid release"
 
     # NOTE: This does *not* depend on the version chosen by the user
     salt: bytes32 = keccak256(concat(abi_encode(signers, threshold), convert(tag, Bytes[64])))
 
-    new_sack: address = create_from_blueprint(
-        PROXY_BLUEPRINT,
+    new_sack: address = raw_create(
+        PROXY_INITCODE,
         implementation,
         signers,
         threshold,
