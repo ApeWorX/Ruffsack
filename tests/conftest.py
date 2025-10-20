@@ -26,14 +26,10 @@ def governance(accounts):
 
 
 @pytest.fixture(scope="session")
-def PROXY_BLUEPRINT(project, deployer):
-    return deployer.declare(project.RuffsackProxy).contract_address
-
-
-@pytest.fixture(scope="session")
-def factory(project, deployer, governance, PROXY_BLUEPRINT):
+def factory(project, deployer, governance):
+    proxy_initcode = project.RuffsackProxy.contract_type.get_deployment_bytecode()
     return Factory(
-        deployer.deploy(project.RuffsackFactory, PROXY_BLUEPRINT, governance).address
+        deployer.deploy(project.RuffsackFactory, governance, proxy_initcode).address
     )
 
 
