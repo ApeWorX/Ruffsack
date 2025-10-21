@@ -1,15 +1,18 @@
 from enum import Flag
+from typing import TYPE_CHECKING
 
-from ape.types.address import AddressType
 from eip712 import EIP712Message
 from eth_abi import encode as abi_encode
-from packaging.version import Version
+
+if TYPE_CHECKING:
+    from ape.types.address import AddressType
+    from packaging.version import Version
 
 
 class ModifyBase(EIP712Message):
     _name_ = "Ruffsack Wallet"
-    parent: "bytes32"
-    action: "uint256"  # type: ignore
+    parent: "bytes32"  # type: ignore[name-defined]  # noqa: F821
+    action: "uint256"  # type: ignore[name-defined]  # noqa: F821
     data: "bytes"
 
 
@@ -25,8 +28,8 @@ class ActionType(Flag):
         self,
         parent: bytes,
         *args,
-        version: Version | None = None,
-        address: AddressType | None = None,
+        version: "Version | None" = None,
+        address: "AddressType | None" = None,
         chain_id: int = 1,
     ) -> ModifyBase:
         class Modify(ModifyBase):
