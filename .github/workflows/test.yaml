@@ -13,6 +13,6 @@ jobs:
     steps:
       - uses: actions/checkout@v5
       - uses: ApeWorX/github-action@v3
-      - run: ape compile
+      - run: ape compile --size
       - run: pip install .
-      - run: ape test -s
+      - run: ape test -s --gas
