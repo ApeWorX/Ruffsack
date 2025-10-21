@@ -10,15 +10,15 @@ if TYPE_CHECKING:
 
 
 class Call(EIP712Type):
-    target: "address"  # type: ignore
-    value: "uint256"  # type: ignore
+    target: "address"  # type: ignore[name-defined]  # noqa: F821
+    value: "uint256"  # type: ignore[name-defined]  # noqa: F821
     data: "bytes"
 
 
 class ExecuteBase(EIP712Message):
     _name_ = "Ruffsack Wallet"
 
-    parent: "bytes32"
+    parent: "bytes32"  # type: ignore[name-defined]  # noqa: F821
     calls: list[Call] = []
 
 
