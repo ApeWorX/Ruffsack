@@ -581,7 +581,7 @@ wheels = [
 
 [[package]]
 name = "eip712"
-version = "0.2.13"
+version = "0.2.14"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "dataclassy" },
@@ -591,9 +591,9 @@ dependencies = [
     { name = "eth-utils" },
     { name = "hexbytes" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/f5/95/aebdac7e295388f6fb953eeb85741a0b87cc5508cc86fc4e32a26d3596ad/eip712-0.2.13.tar.gz", hash = "sha256:291ab5082199469dc088e5fdce7fa07b2e64dcccde434e10a9f1c53be2d18175", size = 63372, upload-time = "2025-06-04T13:47:09.641Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/60/a1/8857817759d75272f27bbb13fe6a1216d70e951765599aeea0c3f763f4da/eip712-0.2.14.tar.gz", hash = "sha256:2b6e971372fbb47bd21cd0f1bf4a88e17499e22d97fcf704c86774b8e5f91766", size = 64777, upload-time = "2025-10-17T20:04:12.485Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/b1/0f/5449346b45658cb1979731f75d1fae46c468cb06cc25250ac542422af515/eip712-0.2.13-py3-none-any.whl", hash = "sha256:92bcaa1f47a48cf6f0369b88b7bac8c88962b212cfb3b9d6a54639de0616e17c", size = 10681, upload-time = "2025-06-04T13:47:08.613Z" },
+    { url = "https://files.pythonhosted.org/packages/76/a8/4a69de2f8bdabf7a72fdaa3347b68f5ee049218ea712e7d1e90e0116c58a/eip712-0.2.14-py3-none-any.whl", hash = "sha256:44393f8880aa2e78acdc59b543071a95557647a11503b208d9bfe1093cd31069", size = 11408, upload-time = "2025-10-17T20:04:11.12Z" },
 ]
 
 [[package]]
@@ -2359,11 +2359,15 @@ name = "ruffsack"
 version = "0.1.0"
 source = { editable = "." }
 dependencies = [
+    { name = "eip712" },
     { name = "eth-ape" },
 ]
 
 [package.metadata]
-requires-dist = [{ name = "eth-ape", specifier = ">=0.8.37" }]
+requires-dist = [
+    { name = "eip712", specifier = ">=0.2.14" },
+    { name = "eth-ape", specifier = ">=0.8.37" },
+]
 
 [[package]]
 name = "safe-pysha3"
