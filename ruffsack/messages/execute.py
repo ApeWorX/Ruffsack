@@ -54,6 +54,16 @@ class Execute(ManagerAccessMixin):
         self.message = Execute(parent=parent)
 
     def add_raw(self, target: "AddressType", value: int = 0, data: bytes = b"") -> Self:
+        if len(self.message.calls) >= 8:
+            raise RuntimeError(
+                "Ruffsack does not support more than 8 calls per execute transaction."
+            )
+
+        if len(data) >= (max_size := 16_388):
+            raise RuntimeError(
+                f"Ruffsack calls do not support data field larger than {max_size} bytes."
+            )
+
         self.message.calls.append(Call(target=target, value=value, data=data))
         return self
 
