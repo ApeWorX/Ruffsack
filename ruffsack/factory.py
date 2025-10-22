@@ -4,6 +4,7 @@ from ape.types import AddressType
 from ape.utils import ManagerAccessMixin, cached_property
 from packaging.version import Version
 
+from .main import Ruffsack
 from .packages import MANIFESTS, PackageType
 
 if TYPE_CHECKING:
@@ -37,14 +38,16 @@ class Factory(ManagerAccessMixin):
             for log in self.contract.NewRelease.range(
                 self._last_cached, latest_block + 1
             ):
+                # NOTE: Handle dev testing by stripping `+...`
+                cleaned_version = Version(Version(log.version).public)
                 self._cached_releases[Version(log.version)] = (
                     self.chain_manager.contracts.instance_at(
                         log.implementation,
-                        contract_type=PackageType.SINGLETON(log.version),
+                        contract_type=PackageType.SINGLETON(cleaned_version),
                     )
                 )
 
-        self._last_cached = latest_block
+            self._last_cached = latest_block
         return self._cached_releases
 
     def new(
@@ -54,7 +57,7 @@ class Factory(ManagerAccessMixin):
         version: Version | str | None = None,
         tag: str | None = None,
         **txn_args,
-    ) -> "ContractInstance":
+    ) -> Ruffsack:
         if threshold is None:
             threshold = len(signers) // 2
 
@@ -73,9 +76,6 @@ class Factory(ManagerAccessMixin):
 
         receipt = self.contract.new(*args, **txn_args)
 
-        new_ruffsack_address = receipt.events[0].new_sack
-        # TODO: Refactor to use SDK internal type? (subclassing `AccountAPI`)
-        return self.chain_manager.contracts.instance_at(
-            new_ruffsack_address,
-            contract_type=PackageType.SINGLETON(version),
+        return Ruffsack(
+            address=receipt.events[0].new_sack, version=version, factory=self
         )

@@ -38,7 +38,7 @@ IMPLEMENTATION: public(address)
 
 # Signer properties
 # @dev All current signers (unordered)
-signers: public(DynArray[address, 11])
+_signers: DynArray[address, 11]
 
 # @dev Number of signers required to execute an action
 threshold: public(uint256)
@@ -156,19 +156,25 @@ def initialize(signers: DynArray[address, 11], threshold: uint256):
     assert self.threshold == 0  # dev: can only initialize once
     assert threshold > 0 and threshold <= len(signers)
 
-    self.signers = signers
+    self._signers = signers
     self.threshold = threshold
+
+
+@view
+@external
+def signers() -> DynArray[address, 11]:
+    return self._signers
 
 
 @external
 def set_approval(msghash: bytes32, approved: bool = True):
-    assert msg.sender in self.signers, "Not a signer"
+    assert msg.sender in self._signers, "Not a signer"
     self.approved[msghash][msg.sender] = approved
 
 
 def _verify_signatures(msghash: bytes32, signatures: DynArray[Bytes[65], 11]):
     approvals_needed: uint256 = self.threshold
-    signers: DynArray[address, 11] = self.signers
+    signers: DynArray[address, 11] = self._signers
     already_approved: DynArray[address, 11] = []
 
     for signer: address in signers:
@@ -219,7 +225,7 @@ def _rotate_signers(
     signers_to_rm: DynArray[address, 11],
     threshold: uint256,
 ):
-    current_signers: DynArray[address, 11] = self.signers
+    current_signers: DynArray[address, 11] = self._signers
     new_signers: DynArray[address, 11] = []
 
     for signer: address in current_signers:
@@ -237,7 +243,7 @@ def _rotate_signers(
         assert threshold <= len(new_signers), "Invalid threshold"
         self.threshold = threshold
 
-    self.signers = new_signers
+    self._signers = new_signers
 
     log SignersRotated(
         executor=msg.sender,
