@@ -64,6 +64,13 @@ class Execute(ManagerAccessMixin):
             data=call.encode_input(*args),
         )
 
+    def add_from_receipt(self, receipt: "ReceiptAPI") -> Self:
+        return self.add_raw(
+            target=receipt.receiver,
+            value=receipt.value,
+            data=receipt.data,
+        )
+
     def __call__(
         self, sack: "Ruffsack | None" = None, **txn_args
     ) -> "ReceiptAPI | None":
