@@ -25,6 +25,9 @@ class ExecuteBase(EIP712Message):
 
 
 class Execute(ManagerAccessMixin):
+    MAX_CALLS = 8
+    MAX_CALLDATA_SIZE = 16_388
+
     def __init__(
         self,
         sack: "Ruffsack | None" = None,
@@ -54,14 +57,15 @@ class Execute(ManagerAccessMixin):
         self.message = Execute(parent=parent)
 
     def add_raw(self, target: "AddressType", value: int = 0, data: bytes = b"") -> Self:
-        if len(self.message.calls) >= 8:
+        if len(self.message.calls) >= self.MAX_CALLS:
             raise RuntimeError(
                 "Ruffsack does not support more than 8 calls per execute transaction."
             )
 
-        if len(data) >= (max_size := 16_388):
+        if len(data) > self.MAX_CALLDATA_SIZE:
             raise RuntimeError(
-                f"Ruffsack calls do not support data field larger than {max_size} bytes."
+                "Ruffsack calls do not support data field larger than"
+                f" {self.MAX_CALLDATA_SIZE} bytes."
             )
 
         self.message.calls.append(Call(target=target, value=value, data=data))
