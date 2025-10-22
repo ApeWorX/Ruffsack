@@ -38,14 +38,16 @@ class Factory(ManagerAccessMixin):
             for log in self.contract.NewRelease.range(
                 self._last_cached, latest_block + 1
             ):
+                # NOTE: Handle dev testing by stripping `+...`
+                cleaned_version = Version(Version(log.version).public)
                 self._cached_releases[Version(log.version)] = (
                     self.chain_manager.contracts.instance_at(
                         log.implementation,
-                        contract_type=PackageType.SINGLETON(log.version),
+                        contract_type=PackageType.SINGLETON(cleaned_version),
                     )
                 )
 
-        self._last_cached = latest_block
+            self._last_cached = latest_block
         return self._cached_releases
 
     def new(
