@@ -4,6 +4,7 @@ from ape.types import AddressType
 from ape.utils import ManagerAccessMixin, cached_property
 from packaging.version import Version
 
+from .main import Ruffsack
 from .packages import MANIFESTS, PackageType
 
 if TYPE_CHECKING:
@@ -54,7 +55,7 @@ class Factory(ManagerAccessMixin):
         version: Version | str | None = None,
         tag: str | None = None,
         **txn_args,
-    ) -> "ContractInstance":
+    ) -> Ruffsack:
         if threshold is None:
             threshold = len(signers) // 2
 
@@ -73,9 +74,6 @@ class Factory(ManagerAccessMixin):
 
         receipt = self.contract.new(*args, **txn_args)
 
-        new_ruffsack_address = receipt.events[0].new_sack
-        # TODO: Refactor to use SDK internal type? (subclassing `AccountAPI`)
-        return self.chain_manager.contracts.instance_at(
-            new_ruffsack_address,
-            contract_type=PackageType.SINGLETON(version),
+        return Ruffsack(
+            address=receipt.events[0].new_sack, version=version, factory=self
         )
