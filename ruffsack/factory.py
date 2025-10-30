@@ -16,9 +16,13 @@ class Factory(ManagerAccessMixin):
         if address:
             self.address = address
 
+        elif len((factory_type := PackageType.FACTORY()).deployments) == 0:
+            raise RuntimeError("No RuffsackFactory deployment on this chain")
+
         else:
-            # TODO: Refactor to use deterministic deployment address
-            self.address = self.local_project.RuffsackFactory.deployments[0].address
+            # NOTE: Override cached value of `contract`
+            self.contract = factory_type.deployments[0]
+            self.address = self.contract.address
 
         self._cached_releases: dict[Version, "ContractInstance"] = dict()
         self._last_cached: int = 0
