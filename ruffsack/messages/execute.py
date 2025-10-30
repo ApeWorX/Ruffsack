@@ -1,5 +1,8 @@
+from collections.abc import Generator
+from contextlib import contextmanager
 from typing import TYPE_CHECKING, Self
 
+from ape.api.accounts import ImpersonatedAccount
 from ape.types import HexBytes
 from ape.utils import ManagerAccessMixin
 from eip712 import EIP712Message, EIP712Type
@@ -84,6 +87,23 @@ class Execute(ManagerAccessMixin):
             value=receipt.value,
             data=receipt.data,
         )
+
+    @contextmanager
+    def add_from_simulation(self) -> Generator[ImpersonatedAccount, None, None]:
+        if not self.sack:
+            raise RuntimeError("Only use simulations with an 'attached' batch instance")
+
+        with (
+            self.chain_manager.isolate()
+            if self.provider.network.is_local
+            else self.chain_manager.fork()
+        ):
+            with self.account_manager.use_sender(self.sack.address) as sack_account:
+                starting_nonce = sack_account.nonce
+                yield sack_account
+
+            for txn in sack_account.history[starting_nonce:]:
+                self.add_from_receipt(txn)
 
     def __call__(
         self, sack: "Ruffsack | None" = None, **txn_args
