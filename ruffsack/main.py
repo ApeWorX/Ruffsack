@@ -31,19 +31,22 @@ class Ruffsack(ManagerAccessMixin):
     ):
         self.address = address
 
-        if factory is None:
-            from .factory import Factory
-
-            self.factory = Factory()
-
-        else:
+        if factory:
+            # NOTE: Override cached value
             self.factory = factory
+
+        if version:
+            # NOTE: Override cached value
+            self.version = version
 
         # TODO: Add client support
         self.client = None
 
-        if version:
-            self.version = version
+    @cached_property
+    def factory(self) -> "Factory":
+        from .factory import Factory
+
+        return Factory()
 
     @cached_property
     def version(self) -> Version:
