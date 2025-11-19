@@ -69,6 +69,9 @@ class Ruffsack(ManagerAccessMixin):
         return self.chain_manager.contracts.instance_at(
             self.address,
             contract_type=PackageType.SINGLETON(self.version),
+            fetch_from_explorer=False,
+            detect_proxy=False,
+            # TODO: `proxy_info=self.contract.implementation()` using EIP-1967
         )
 
     @property
@@ -82,6 +85,11 @@ class Ruffsack(ManagerAccessMixin):
     @property
     def head(self) -> HexBytes:
         return self.contract.head()
+
+    def set_head(self, new_head: HexBytes):
+        # NOTE: allows modifying head for local simulation and testing
+        # NOTE: Storage slot 1 in contract is head
+        self.provider.set_storage(self.address, 1, new_head)
 
     @property
     def local_signers(self) -> list["AccountAPI"]:

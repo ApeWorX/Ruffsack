@@ -34,6 +34,8 @@ class Factory(ManagerAccessMixin):
         return self.chain_manager.contracts.instance_at(
             self.address,
             contract_type=PackageType.FACTORY(max(MANIFESTS)),
+            fetch_from_explorer=False,
+            detect_proxy=False,
         )
 
     @property

@@ -36,6 +36,12 @@ EXECUTE_TYPEHASH: constant(bytes32) = keccak256(
 IMPLEMENTATION: public(address)
 # NOTE: Must be first slot, this will be used by upgradeable proxy for delegation
 
+# @dev The last message hash (`Modify` or `Execute` struct) that was executed
+head: public(bytes32)
+
+# @dev Set of pre-approved transaction hashes, indexed by signer
+approved: public(HashMap[bytes32, HashMap[address, bool]])
+
 # Signer properties
 # @dev All current signers (unordered)
 _signers: DynArray[address, 11]
@@ -43,12 +49,6 @@ _signers: DynArray[address, 11]
 # @dev Number of signers required to execute an action
 threshold: public(uint256)
 # NOTE: invariant `0 < threshold <= len(signers)`
-
-# @dev The last message hash (`Modify` or `Execute` struct) that was executed
-head: public(bytes32)
-
-# @dev Set of pre-approved transaction hashes, indexed by signer
-approved: public(HashMap[bytes32, HashMap[address, bool]])
 
 flag ActionType:
     UPGRADE_IMPLEMENTATION
