@@ -1,9 +1,11 @@
 import math
 from typing import TYPE_CHECKING
+import runpy
 
 from ape.exceptions import ConversionError
 import click
 from ape.cli import ConnectedProviderCommand, account_option
+from ape.cli import ape_cli_context
 from ape.types import AddressType
 from createx import CreateX
 from packaging.version import Version
@@ -260,6 +262,69 @@ def disable_module(
 
     elif click.confirm(f"Disable module {module}?"):
         ruffsack.modules.disable(module, submitter=submitter)
+
+
+@cli.group()
+def queue():
+    """Commands to manage off-chain queue"""
+
+
+@queue.command(cls=ConnectedProviderCommand)
+@ape_cli_context()
+@account_option("--proposer")
+@click.option("--submit", is_flag=True, default=False)
+@click.option("--stop-at", default=None)
+@ruffsack_argument()
+def run(cli_ctx, network, proposer, submit, stop_at, ruffsack):
+    """
+    Run scripts in the local Ruffsack queue to create a new head
+
+    This command uses scripts from `scripts/q*.py` and "replays" them from the Ruffsack's current
+    on-chain head, up to the last script found in the folder or until the new head is `--stop-at`.
+    When executed using a fork network, it will only perform a simulated validation of the script.
+    When executed using a live network, it will publish the transaction ONLY IF the transaction at
+    that msghash does not exist in the off-chain queue.
+
+    To enable this, scripts under `scripts/` must be properly named, and all use
+    `ruffsack.cli.propose_from_simulation`.
+    """
+
+    if not (
+        available_queue_scripts := {
+            script.stem[1:]: script.relative_to(cli_ctx.local_project.path)
+            for script in cli_ctx.local_project.scripts_folder.glob("q*.py")
+        }
+    ):
+        raise click.UsageError("No scripts to queue detected in 'scripts/'.")
+
+    elif (len(hashlen_sizes := set(len(s) for s in available_queue_scripts))) > 1:
+        raise click.UsageError("All hashes in script filenames must be same length")
+
+    # NOTE: Only one option, so pop it
+    hashlen = hashlen_sizes.pop()
+    assert stop_at is None or len(stop_at) == hashlen, (
+        f"Does not match hash length of {hashlen}: '{stop_at}'"
+    )
+
+    parent = ruffsack.head
+    cli_ctx.logger.info(f"Current head: {parent.to_0x_hex()}")
+
+    while available_queue_scripts and parent.hex()[:hashlen] != stop_at:
+        if not (script := available_queue_scripts.pop(parent.hex()[:hashlen], None)):
+            break
+
+        if not (cmd := runpy.run_path(str(script), run_name=script.stem).get("cli")):
+            raise click.UsageError(f"No command `cli` detected in {script}.")
+
+        cli_ctx.logger.info(f"Running '{script}':\n\n  {cmd.help}\n")
+        # NOTE: This matches signature from `ruffsack.cli:propose_from_simulation`
+        parent = cmd.callback.__wrapped__(
+            cli_ctx, network, proposer, parent, submit, ruffsack
+        )
+
+        cli_ctx.logger.success(f"New head set: {parent.to_0x_hex()}")
+
+    cli_ctx.logger.success(f"Queue for '{ruffsack.address}' up-to-date!")
 
 
 @cli.group()
