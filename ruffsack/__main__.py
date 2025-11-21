@@ -1,16 +1,16 @@
 import math
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING
 
+from ape.exceptions import ConversionError
 import click
-from ape import project
 from ape.cli import ConnectedProviderCommand, account_option
 from ape.types import AddressType
-from ape.utils import ZERO_ADDRESS
 from createx import CreateX
 from packaging.version import Version
 
 from ruffsack import Factory
 from ruffsack.packages import MANIFESTS
+from ruffsack.packages import PackageType, NEXT_VERSION
 
 if TYPE_CHECKING:
     from ape.api.accounts import AccountAPI
@@ -18,27 +18,64 @@ if TYPE_CHECKING:
 
 def version_option():
     def _convert_version(ctx, _param, value):
-        try:
-            return Version(value)
+        if value is None:
+            # NOTE: Temporary until v1 is released
+            version = NEXT_VERSION
 
-        except ValueError as e:
-            raise click.UsageError(
-                ctx=ctx,
-                message=f"'{value}' is not a valid verison identifier.",
-            ) from e
+        else:
+            try:
+                version = Version(value)
 
+            except ValueError as e:
+                raise click.UsageError(
+                    ctx=ctx,
+                    message=f"'{value}' is not a valid verison identifier.",
+                ) from e
+
+        if version == NEXT_VERSION:
+            click.echo(
+                click.style("WARNING:", fg="yellow")
+                + f"  Using un-released version {version}"
+            )
+
+        return version
+
+    released_versions = list(str(v) for v in MANIFESTS if v != NEXT_VERSION)
+    default_version = str(max(released_versions)) if released_versions else None
     return click.option(
         "--version",
-        type=click.Choice(list(str(v) for v in MANIFESTS)),
-        default=str(max(MANIFESTS)),
+        type=click.Choice([*released_versions, str(NEXT_VERSION)]),
+        default=default_version,
         callback=_convert_version,
-        help="Version to use when deploying the contract. Defaults to latest in SDK.",
+        help="Version to use when deploying the contract. Defaults to last stable release.",
     )
 
 
 @click.group()
 def cli():
     """Manage Ruffsack wallets (https://ruffsack.xyz)"""
+
+
+def _get_accounts(ctx, param, values):
+    from ape import accounts, convert
+
+    def get_account(value):
+        if value in accounts.aliases:
+            return accounts.load(value)
+
+        elif value.startswith("TEST::"):
+            return accounts.test_accounts[int(value[6:])]
+
+        try:
+            return convert(value, AddressType)
+
+        except ConversionError as e:
+            raise click.UsageError(
+                ctx=ctx,
+                message=f"Not a valid '{param}': {value}",
+            ) from e
+
+    return [get_account(v) for v in values]
 
 
 @cli.command(cls=ConnectedProviderCommand)
@@ -52,15 +89,9 @@ def cli():
     "Defaults to half the number of signers (rounding up)",
 )
 @click.option("--tag", default=None)
-@click.argument("signers", nargs=-1)
+@click.argument("signers", nargs=-1, callback=_get_accounts)
 def new(version, threshold, tag, signers, account):
     """Create a new Ruffsack multisig wallet on the given network"""
-    from ape import accounts, convert
-
-    signers = [
-        accounts.load(s) if s in accounts.aliases else convert(s, AddressType)
-        for s in signers
-    ]
 
     if len(signers) == 0:
         raise click.UsageError("Must provider at least one signer")
@@ -101,11 +132,10 @@ def deploy():
 
 @deploy.command(cls=ConnectedProviderCommand)
 @account_option()
-@click.argument("governance", default=None, required=False)
-def factory(account: "AccountAPI", governance: Any):
+def factory(account: "AccountAPI"):
     """Deploy Proxy Factory to the specified network"""
 
-    proxy_initcode = project.RuffsackProxy.contract_type.get_deployment_bytecode()
+    proxy_initcode = PackageType.PROXY().contract_type.get_deployment_bytecode()
 
     try:
         createx = CreateX()
@@ -113,8 +143,7 @@ def factory(account: "AccountAPI", governance: Any):
         createx = CreateX.inject()
 
     factory = createx.deploy(
-        project.RuffsackFactory,
-        governance or account,
+        PackageType.FACTORY(),
         proxy_initcode,
         sender=account,
         sender_protection=False,
@@ -136,38 +165,11 @@ def singleton(version: Version, account: "AccountAPI"):
         createx = CreateX.inject()
 
     singleton = createx.deploy(
-        MANIFESTS[version].Ruffsack,
+        PackageType.SINGLETON(version),
         str(version),
         sender=account,
         sender_protection=False,
         redeploy_protection=False,
         salt=f"Ruffsack v{version}",
     )
-    click.secho(f"Single {version} deployed to {singleton.address}", fg="green")
-
-
-@sudo.command(cls=ConnectedProviderCommand)
-@version_option()
-@account_option()
-def release(version: Version, account: "AccountAPI"):
-    """Add a new release to the Factory"""
-
-    manifest = MANIFESTS[version]
-
-    if len(manifest.Ruffsack.deployments) == 0:
-        raise click.UsageError("Cannot autodetect last release of Singleton")
-
-    release = manifest.Ruffsack.deployments[-1]
-
-    if len(manifest.RuffsackFactory.deployments) == 0:
-        raise click.UsageError("Cannot autodetect Factory to link Singleton")
-
-    elif (factory := manifest.RuffsackFactory.deployments[-1]).governance() != account:
-        raise click.UsageError(
-            "Cannot link Singleton without governance account access"
-        )
-
-    elif factory.releases(release.VERSION()) != ZERO_ADDRESS:
-        raise click.UsageError("Release process will fail. Release already set.")
-
-    factory.add_release(release, sender=account)
+    click.secho(f"Ruffsack v{version} deployed to {singleton.address}", fg="green")
