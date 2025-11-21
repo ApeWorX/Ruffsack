@@ -1,9 +1,15 @@
-# @version 0.4.3
+# pragma version 0.4.3
 """
 @title Ruffsack
 @license Apache-2.0
 @author ApeWorX LTD.
 """
+
+from . import IRuffsack
+implements: IRuffsack
+
+from .guards import IAdminGuard
+from .guards import IExecuteGuard
 
 NAME: constant(String[15]) = "Ruffsack Wallet"
 NAMEHASH: constant(bytes32) = keccak256(NAME)
@@ -14,16 +20,10 @@ VERSIONHASH: immutable(bytes32)
 EIP712_DOMAIN_TYPEHASH: constant(bytes32) = keccak256(
     "EIP712Domain(string name,string version,uint256 chainId,address verifyingContract)"
 )
+
 MODIFY_TYPEHASH: constant(bytes32) = keccak256(
     "Modify(bytes32 parent,uint256 action,bytes data)"
 )
-
-struct Call:
-    target: address
-    value: uint256
-    # TODO: Increase size to 65540 once Vyper improves memory allocation (gas costs too high)
-    data: Bytes[16388]
-
 
 CALL_TYPEHASH: constant(bytes32) = keccak256(
     "Call(address target,uint256 value,bytes data)"
@@ -50,24 +50,8 @@ _signers: DynArray[address, 11]
 threshold: public(uint256)
 # NOTE: invariant `0 < threshold <= len(signers)`
 
-flag ActionType:
-    UPGRADE_IMPLEMENTATION
-    ROTATE_SIGNERS
-    CONFIGURE_MODULE
-    SET_ADMIN_GUARD
-    SET_EXECUTE_GUARD
-    # NOTE: Add future reconfiguration actions here
-
-interface IAdminGuard:
-    def preUpdateCheck(action: ActionType, data: Bytes[65535]): nonpayable
-    def postUpdateCheck(): nonpayable
-
 # @dev Before/after checker for Update actions
 admin_guard: public(IAdminGuard)
-
-interface IExecuteGuard:
-    def preExecuteCheck(call: Call): nonpayable
-    def postExecuteCheck(): nonpayable
 
 # @dev Before/after checker for Execute actions
 execute_guard: public(IExecuteGuard)
@@ -75,49 +59,8 @@ execute_guard: public(IExecuteGuard)
 # @dev Modules enabled for this wallet
 module_enabled: public(HashMap[address, bool])
 
-
 # NOTE: Future variables (used for new core features) must be added below
 
-
-# NOTE: All admin events are separated out
-event ImplementationUpgraded:
-    executor: indexed(address)
-    old: indexed(address)
-    new: indexed(address)
-
-
-event SignersRotated:
-    executor: indexed(address)
-    num_signers: indexed(uint256)
-    threshold: indexed(uint256)
-    signers_added: DynArray[address, 11]
-    signers_removed: DynArray[address, 11]
-
-
-event ModuleUpdated:
-    executor: indexed(address)
-    module: indexed(address)
-    enabled: indexed(bool)
-
-
-event AdminGuardUpdated:
-    executor: indexed(address)
-    old: indexed(IAdminGuard)
-    new: indexed(IAdminGuard)
-
-
-event ExecuteGuardUpdated:
-    executor: indexed(address)
-    old: indexed(IExecuteGuard)
-    new: indexed(IExecuteGuard)
-
-
-event Executed:
-    executor: indexed(address)
-    success: indexed(bool)
-    target: indexed(address)
-    value: uint256
-    data: Bytes[16388]
 
 
 @deploy
@@ -245,7 +188,7 @@ def _rotate_signers(
 
     self._signers = new_signers
 
-    log SignersRotated(
+    log IRuffsack.SignersRotated(
         executor=msg.sender,
         num_signers=len(new_signers),
         threshold=self.threshold,  # NOTE: In case there was no change
@@ -256,7 +199,7 @@ def _rotate_signers(
 
 @external
 def modify(
-    action: ActionType,
+    action: IRuffsack.ActionType,
     data: Bytes[65535],
     signatures: DynArray[Bytes[65], 11] = [],
     # NOTE: Skip argument to use on-chain approvals
@@ -272,12 +215,16 @@ def modify(
     if admin_guard.address != empty(address):
         extcall admin_guard.preUpdateCheck(action, data)
 
-    if action == ActionType.UPGRADE_IMPLEMENTATION:
+    if action == IRuffsack.ActionType.UPGRADE_IMPLEMENTATION:
         new: address = abi_decode(data, address)
-        log ImplementationUpgraded(executor=msg.sender, old=self.IMPLEMENTATION, new=new)
+        log IRuffsack.ImplementationUpgraded(
+            executor=msg.sender,
+            old=self.IMPLEMENTATION,
+            new=new,
+        )
         self.IMPLEMENTATION = new
 
-    elif action == ActionType.ROTATE_SIGNERS:
+    elif action == IRuffsack.ActionType.ROTATE_SIGNERS:
         signers_to_add: DynArray[address, 11] = []
         signers_to_rm: DynArray[address, 11] = []
         threshold: uint256 = 0
@@ -287,22 +234,34 @@ def modify(
         )
         self._rotate_signers(signers_to_add, signers_to_rm, threshold)
 
-    elif action == ActionType.CONFIGURE_MODULE:
+    elif action == IRuffsack.ActionType.CONFIGURE_MODULE:
         module: address = empty(address)
         enabled: bool = False
         module, enabled = abi_decode(data, (address, bool))
-        log ModuleUpdated(executor=msg.sender, module=module, enabled=enabled)
+        log IRuffsack.ModuleUpdated(
+            executor=msg.sender,
+            module=module,
+            enabled=enabled,
+        )
         self.module_enabled[module] = enabled
 
-    elif action == ActionType.SET_ADMIN_GUARD:
+    elif action == IRuffsack.ActionType.SET_ADMIN_GUARD:
         # NOTE: Don't use `admin_guard` as it would override above
         guard: IAdminGuard = abi_decode(data, IAdminGuard)
-        log AdminGuardUpdated(executor=msg.sender, old=admin_guard, new=guard)
+        log IRuffsack.AdminGuardUpdated(
+            executor=msg.sender,
+            old=admin_guard.address,
+            new=guard.address,
+        )
         self.admin_guard = guard
 
-    elif action == ActionType.SET_EXECUTE_GUARD:
+    elif action == IRuffsack.ActionType.SET_EXECUTE_GUARD:
         guard: IExecuteGuard = abi_decode(data, IExecuteGuard)
-        log ExecuteGuardUpdated(executor=msg.sender, old=self.execute_guard, new=guard)
+        log IRuffsack.ExecuteGuardUpdated(
+            executor=msg.sender,
+            old=self.execute_guard.address,
+            new=guard.address,
+        )
         self.execute_guard = guard
 
     else:
@@ -315,7 +274,7 @@ def modify(
 
 @external
 def execute(
-    calls: DynArray[Call, 8],
+    calls: DynArray[IRuffsack.Call, 8],
     signatures: DynArray[Bytes[65], 11] = [],
     # NOTE: Skip argument to use on-chain approvals, or for module use
 ):
@@ -324,7 +283,7 @@ def execute(
 
         # Step 1: Encode struct to list of 32 byte hash of items
         encoded_call_members: DynArray[bytes32, 8] = []
-        for call: Call in calls:
+        for call: IRuffsack.Call in calls:
             encoded_call_members.append(
                 # NOTE: Per EIP712, structs are encoded as the hash of their contents (incl. Typehash)
                 keccak256(
@@ -354,7 +313,7 @@ def execute(
         self.head = msghash
 
     guard: IExecuteGuard = self.execute_guard
-    for call: Call in calls:
+    for call: IRuffsack.Call in calls:
         if guard.address != empty(address):
             extcall guard.preExecuteCheck(call)
 
@@ -369,7 +328,7 @@ def execute(
         if guard.address != empty(address):
             extcall guard.postExecuteCheck()
 
-        log Executed(
+        log IRuffsack.Executed(
             executor=msg.sender,
             success=success,
             target=call.target,

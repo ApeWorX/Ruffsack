@@ -1,0 +1,11 @@
+"""
+@name Execute Guard Interface
+"""
+
+from .. import IRuffsack
+
+@external
+def preExecuteCheck(call: IRuffsack.Call): ...
+
+@external
+def postExecuteCheck(): ...
