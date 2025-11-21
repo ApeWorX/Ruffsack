@@ -3,19 +3,13 @@ from ruffsack.messages import ActionType
 
 
 def test_upgrade(
-    chain, VERSION, THRESHOLD, owners, create_release, singleton, sack, approval_flow
+    VERSION, THRESHOLD, owners, create_release, singleton, sack, approval_flow
 ):
     new_version = Version(f"{VERSION}+post.0")
     new_impl = create_release(version=new_version)
 
     if approval_flow == "onchain":
-        msg = ActionType.UPGRADE_IMPLEMENTATION(
-            sack.head,
-            new_impl.address,
-            version=VERSION,
-            address=sack.address,
-            chain_id=chain.chain_id,
-        )
+        msg = ActionType.UPGRADE_IMPLEMENTATION(new_impl.address, sack=sack)
 
         for owner in owners[:THRESHOLD]:
             sack.contract.set_approval(msg._message_hash_, sender=owner)
@@ -24,7 +18,7 @@ def test_upgrade(
         assert sack.head == msg._message_hash_
 
     else:
-        receipt = sack.migrate(sender=owners[0])
+        receipt = sack.migrate(new_version=new_version, sender=owners[0])
 
     assert receipt.events == [
         sack.contract.ImplementationUpgraded(
@@ -41,13 +35,10 @@ def test_rotate_signers(
 ):
     if approval_flow == "onchain":
         msg = ActionType.ROTATE_SIGNERS(
-            sack.head,
             [accounts[len(owners)].address],
             [owners[0].address],
             sack.threshold,
-            version=VERSION,
-            address=sack.address,
-            chain_id=chain.chain_id,
+            sack=sack,
         )
 
         for owner in owners[:THRESHOLD]:

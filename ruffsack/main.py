@@ -9,7 +9,7 @@ from packaging.version import Version
 
 from .messages import ActionType, Execute
 from .modules import ModuleManager
-from .packages import PackageType
+from .packages import PackageType, STABLE_VERSION
 
 if TYPE_CHECKING:
     from collections.abc import Iterable
@@ -31,19 +31,22 @@ class Ruffsack(ManagerAccessMixin):
     ):
         self.address = address
 
-        if factory is None:
-            from .factory import Factory
-
-            self.factory = Factory()
-
-        else:
+        if factory:
+            # NOTE: Override cached value
             self.factory = factory
+
+        if version:
+            # NOTE: Override cached value
+            self.version = version
 
         # TODO: Add client support
         self.client = None
 
-        if version:
-            self.version = version
+    @cached_property
+    def factory(self) -> "Factory":
+        from .factory import Factory
+
+        return Factory()
 
     @cached_property
     def version(self) -> Version:
@@ -63,9 +66,11 @@ class Ruffsack(ManagerAccessMixin):
 
     @cached_property
     def contract(self) -> ContractInstance:
-        return self.chain_manager.contracts.instance_at(
+        return PackageType.SINGLETON(self.version).at(
             self.address,
-            contract_type=PackageType.SINGLETON(self.version),
+            fetch_from_explorer=False,
+            detect_proxy=False,
+            # TODO: `proxy_info=self.contract.implementation()` using EIP-1967
         )
 
     @property
@@ -79,6 +84,11 @@ class Ruffsack(ManagerAccessMixin):
     @property
     def head(self) -> HexBytes:
         return self.contract.head()
+
+    def set_head(self, new_head: HexBytes):
+        # NOTE: allows modifying head for local simulation and testing
+        # NOTE: Storage slot 1 in contract is head
+        self.provider.set_storage(self.address, 1, new_head)
 
     @property
     def local_signers(self) -> list["AccountAPI"]:
@@ -157,23 +167,16 @@ class Ruffsack(ManagerAccessMixin):
 
     def migrate(
         self,
-        new_version: Version | None = None,
+        new_version: Version | str = STABLE_VERSION,
         **txn_args,
     ) -> "ReceiptAPI | None":
-        implementation = None
-        if new_version is None:
-            implementation = self.factory.releases[max(self.factory.releases)]
-
-        elif not (implementation := self.factory.releases.get(new_version)):
-            raise ValueError(f"Unknown version: v{new_version}")
+        if not (release := self.factory.get_release(new_version)):
+            raise ValueError(f"No release for {new_version} deployed on this chain")
 
         return self.modify(
             ActionType.UPGRADE_IMPLEMENTATION(
-                self.head,
-                implementation.address,
-                version=self.version,
-                address=self.address,
-                chain_id=self.chain_manager.chain_id,
+                release.address,
+                sack=self,
             ),
             **txn_args,
         )
@@ -217,13 +220,10 @@ class Ruffsack(ManagerAccessMixin):
 
         return self.modify(
             ActionType.ROTATE_SIGNERS(
-                self.head,
                 signers_to_add,
                 signers_to_remove,
                 threshold,
-                version=self.version,
-                address=self.address,
-                chain_id=self.chain_manager.chain_id,
+                sack=self,
             ),
             **txn_args,
         )
@@ -254,13 +254,7 @@ class Ruffsack(ManagerAccessMixin):
         new_guard = self.conversion_manager.convert(new_guard, AddressType)
 
         return self.modify(
-            ActionType.SET_ADMIN_GUARD(
-                self.head,
-                new_guard,
-                version=self.version,
-                address=self.address,
-                chain_id=self.chain_manager.chain_id,
-            ),
+            ActionType.SET_ADMIN_GUARD(new_guard, sack=self),
             **txn_args,
         )
 
@@ -285,13 +279,7 @@ class Ruffsack(ManagerAccessMixin):
         new_guard = self.conversion_manager.convert(new_guard, AddressType)
 
         return self.modify(
-            ActionType.SET_EXECUTE_GUARD(
-                self.head,
-                new_guard,
-                version=self.version,
-                address=self.address,
-                chain_id=self.chain_manager.chain_id,
-            ),
+            ActionType.SET_EXECUTE_GUARD(new_guard, sack=self),
             **txn_args,
         )
 

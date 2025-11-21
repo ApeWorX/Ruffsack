@@ -1,0 +1,11 @@
+"""
+@name Admin Guard Interface
+"""
+
+from .. import IRuffsack
+
+@external
+def preUpdateCheck(action: IRuffsack.ActionType, data: Bytes[65535]): ...
+
+@external
+def postUpdateCheck(): ...

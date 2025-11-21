@@ -21,16 +21,9 @@ def deployer(accounts):
 
 
 @pytest.fixture(scope="session")
-def governance(accounts):
-    return accounts[-2]
-
-
-@pytest.fixture(scope="session")
-def factory(project, deployer, governance):
+def factory(project, deployer):
     proxy_initcode = project.RuffsackProxy.contract_type.get_deployment_bytecode()
-    return Factory(
-        deployer.deploy(project.RuffsackFactory, governance, proxy_initcode).address
-    )
+    return Factory(deployer.deploy(project.RuffsackFactory, proxy_initcode).address)
 
 
 @pytest.fixture(
@@ -55,7 +48,7 @@ def THRESHOLD(WALLET_PARAMS):
 
 
 @pytest.fixture(scope="session")
-def create_release(VERSION, deployer, governance, factory):
+def create_release(VERSION, deployer, factory):
     def create_release(
         version: Version | None = None,
         creator: "AccountAPI | None" = None,
@@ -64,19 +57,18 @@ def create_release(VERSION, deployer, governance, factory):
             PackageType.SINGLETON(VERSION),
             str(version or VERSION),  # Allows over-writing version
         )
-
-        factory.contract.add_release(singleton, sender=governance)
+        factory._cached_releases[version or VERSION] = singleton
         return singleton
 
     return create_release
 
 
 @pytest.fixture(scope="session")
-def singleton(VERSION, deployer, factory, create_release):
-    if singleton := factory.releases.get(VERSION):
+def singleton(VERSION, factory, create_release):
+    if singleton := factory.get_release(VERSION):
         return singleton
 
-    return create_release(VERSION, deployer)
+    return create_release()
 
 
 @pytest.fixture(scope="session")
@@ -87,7 +79,7 @@ def new_sack(deployer, factory, create_release):
         version: Version | None = None,
         **txn_args,
     ) -> "ContractInstance":
-        if version and version not in factory.releases:
+        if not factory.get_release(version):
             create_release(version, deployer)
 
         return factory.new(owners, threshold, version=version, **txn_args)

@@ -1,12 +1,9 @@
 from enum import Enum
 from importlib import resources
-from typing import TYPE_CHECKING
 
+from ape.contracts import ContractContainer
 from ethpm_types import PackageManifest
 from packaging.version import Version
-
-if TYPE_CHECKING:
-    from ape.contracts import ContractContainer
 
 MANIFESTS = {
     Version(
@@ -16,13 +13,21 @@ MANIFESTS = {
     if manifest.name.endswith(".json")
 }
 
+NEXT_VERSION = max(MANIFESTS)
+try:
+    STABLE_VERSION = sorted(MANIFESTS)[-2]
+
+except IndexError:
+    # TODO: Remove once more than one version exists
+    STABLE_VERSION = NEXT_VERSION
+
 
 class PackageType(str, Enum):
     SINGLETON = "Ruffsack"
     PROXY = "RuffsackProxy"
     FACTORY = "RuffsackFactory"
 
-    def __call__(self, version: Version | str) -> "ContractContainer":
+    def __call__(self, version: Version | str = STABLE_VERSION) -> "ContractContainer":
         if not isinstance(version, Version):
             version = Version(version.lstrip("v"))
 
@@ -35,4 +40,4 @@ class PackageType(str, Enum):
         elif not (contract_type := package.get_contract_type(self.value)):
             raise ValueError(f"Unknown type in package v{version}: {self.value}")
 
-        return contract_type
+        return ContractContainer(contract_type)

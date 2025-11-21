@@ -1,0 +1,85 @@
+# pragma version 0.4.3
+struct Call:
+    target: address
+    value: uint256
+    # TODO: Increase size to 65540 once Vyper improves memory allocation (gas costs too high)
+    data: Bytes[16388]
+
+flag ActionType:
+    UPGRADE_IMPLEMENTATION
+    ROTATE_SIGNERS
+    CONFIGURE_MODULE
+    SET_ADMIN_GUARD
+    SET_EXECUTE_GUARD
+    # NOTE: Add future reconfiguration actions here
+
+
+# NOTE: All admin events are separated out
+event ImplementationUpgraded:
+    executor: indexed(address)
+    old: indexed(address)
+    new: indexed(address)
+
+
+event SignersRotated:
+    executor: indexed(address)
+    num_signers: indexed(uint256)
+    threshold: indexed(uint256)
+    signers_added: DynArray[address, 11]
+    signers_removed: DynArray[address, 11]
+
+
+event ModuleUpdated:
+    executor: indexed(address)
+    module: indexed(address)
+    enabled: indexed(bool)
+
+
+event AdminGuardUpdated:
+    executor: indexed(address)
+    old: indexed(address)
+    new: indexed(address)
+
+
+event ExecuteGuardUpdated:
+    executor: indexed(address)
+    old: indexed(address)
+    new: indexed(address)
+
+
+event Executed:
+    executor: indexed(address)
+    success: indexed(bool)
+    target: indexed(address)
+    value: uint256
+    data: Bytes[16388]
+
+@view
+@external
+def IMPLEMENTATION() -> address: ...
+
+@view
+@external
+def VERSION() -> String[12]: ...
+
+@view
+@external
+def signers() -> DynArray[address, 11]: ...
+
+@external
+def set_approval(msghash: bytes32, approved: bool = True): ...
+
+@external
+def modify(
+    action: ActionType,
+    data: Bytes[65535],
+    signatures: DynArray[Bytes[65], 11] = [],
+    # NOTE: Skip argument to use on-chain approvals
+): ...
+
+@external
+def execute(
+    calls: DynArray[Call, 8],
+    signatures: DynArray[Bytes[65], 11] = [],
+    # NOTE: Skip argument to use on-chain approvals, or for module use
+): ...
