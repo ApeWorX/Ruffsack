@@ -9,7 +9,7 @@ from packaging.version import Version
 
 from .messages import ActionType, Execute
 from .modules import ModuleManager
-from .packages import PackageType
+from .packages import PackageType, STABLE_VERSION
 
 if TYPE_CHECKING:
     from collections.abc import Iterable
@@ -66,9 +66,8 @@ class Ruffsack(ManagerAccessMixin):
 
     @cached_property
     def contract(self) -> ContractInstance:
-        return self.chain_manager.contracts.instance_at(
+        return PackageType.SINGLETON(self.version).at(
             self.address,
-            contract_type=PackageType.SINGLETON(self.version),
             fetch_from_explorer=False,
             detect_proxy=False,
             # TODO: `proxy_info=self.contract.implementation()` using EIP-1967
@@ -168,20 +167,16 @@ class Ruffsack(ManagerAccessMixin):
 
     def migrate(
         self,
-        new_version: Version | None = None,
+        new_version: Version | str = STABLE_VERSION,
         **txn_args,
     ) -> "ReceiptAPI | None":
-        implementation = None
-        if new_version is None:
-            implementation = self.factory.releases[max(self.factory.releases)]
-
-        elif not (implementation := self.factory.releases.get(new_version)):
-            raise ValueError(f"Unknown version: v{new_version}")
+        if not (release := self.factory.get_release(new_version)):
+            raise ValueError(f"No release for {new_version} deployed on this chain")
 
         return self.modify(
             ActionType.UPGRADE_IMPLEMENTATION(
                 self.head,
-                implementation.address,
+                release.address,
                 version=self.version,
                 address=self.address,
                 chain_id=self.chain_manager.chain_id,

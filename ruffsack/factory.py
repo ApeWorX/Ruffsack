@@ -5,7 +5,7 @@ from ape.utils import ManagerAccessMixin, cached_property
 from packaging.version import Version
 
 from .main import Ruffsack
-from .packages import MANIFESTS, PackageType
+from .packages import STABLE_VERSION, PackageType
 
 if TYPE_CHECKING:
     from ape.contracts import ContractInstance
@@ -24,43 +24,37 @@ class Factory(ManagerAccessMixin):
             self.contract = factory_type.deployments[0]
             self.address = self.contract.address
 
+        # NOTE: also lets us override for testing
         self._cached_releases: dict[Version, "ContractInstance"] = dict()
-        self._last_cached: int = 0
 
     # TODO: classmethod `.inject`?
 
     @cached_property
     def contract(self) -> "ContractInstance":
-        return self.chain_manager.contracts.instance_at(
+        return PackageType.FACTORY().at(
             self.address,
-            contract_type=PackageType.FACTORY(max(MANIFESTS)),
             fetch_from_explorer=False,
             detect_proxy=False,
         )
 
-    @property
-    def releases(self) -> dict[Version, "ContractInstance"]:
-        if (latest_block := self.chain_manager.blocks.head.number) > self._last_cached:
-            for log in self.contract.NewRelease.range(
-                self._last_cached, latest_block + 1
-            ):
-                # NOTE: Handle dev testing by stripping `+...`
-                cleaned_version = Version(Version(log.version).public)
-                self._cached_releases[Version(log.version)] = (
-                    self.chain_manager.contracts.instance_at(
-                        log.implementation,
-                        contract_type=PackageType.SINGLETON(cleaned_version),
-                    )
-                )
+    def get_release(self, version: Version) -> "ContractInstance | None":
+        if release := self._cached_releases.get(version):
+            return release
 
-            self._last_cached = latest_block
-        return self._cached_releases
+        elif not (singleton_type := PackageType.SINGLETON(version)).deployments:
+            return None
+
+        elif not (release := singleton_type.deployments[-1]).code:
+            return None
+
+        self._cached_releases[version] = release
+        return release
 
     def new(
         self,
         signers: list[AddressType],
         threshold: int | None = None,
-        version: Version | str | None = None,
+        version: Version | str = STABLE_VERSION,
         tag: str | None = None,
         **txn_args,
     ) -> Ruffsack:
@@ -68,17 +62,13 @@ class Factory(ManagerAccessMixin):
             threshold = len(signers) // 2
 
         if isinstance(version, str):
-            version = Version(version)
+            version = Version(version.lstrip("v"))
 
-        args = [signers, threshold]
+        release = self.get_release(version)
+
+        args = [release, signers, threshold]
         if tag is not None:
-            args.extend([str(version) if version else "stable", tag])
-
-        elif version is not None:
-            args.append(str(version))
-
-        if version is None:
-            version = Version(self.contract.last_release())
+            args.append(tag)
 
         receipt = self.contract.new(*args, **txn_args)
 

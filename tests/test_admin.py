@@ -24,7 +24,7 @@ def test_upgrade(
         assert sack.head == msg._message_hash_
 
     else:
-        receipt = sack.migrate(sender=owners[0])
+        receipt = sack.migrate(new_version=new_version, sender=owners[0])
 
     assert receipt.events == [
         sack.contract.ImplementationUpgraded(
