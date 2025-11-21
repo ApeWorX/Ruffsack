@@ -45,10 +45,14 @@ name = "solidity"
 [[tool.ape.plugins]]
 name = "vyper"
 
-# Latest (v0.1)
-[[tool.ape.deployments.ethereum.local]]
-address = "0x5FbDB2315678afecb367f032d93F642f64180aa3"
+# Factory
+[[tool.ape.deployments.ethereum.sepolia]]#.deterministic]]
+address = "0x806625Fba26e57B2723e5DD194e573ca1EBcD903"
 contract_type = "RuffsackFactory"
-[[tool.ape.deployments.ethereum.local]]
-address = "0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512"
+
+# Singleton
+# NOTE: Update latest Singleton when contract code changes
+# v1 (Latest)
+[[tool.ape.deployments.ethereum.local]]#.deterministic]]
+address = "0x82090520b492f1C08603499B8c3aE22eCCcC5fc5"
 contract_type = "Ruffsack"
