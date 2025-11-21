@@ -175,11 +175,8 @@ class Ruffsack(ManagerAccessMixin):
 
         return self.modify(
             ActionType.UPGRADE_IMPLEMENTATION(
-                self.head,
                 release.address,
-                version=self.version,
-                address=self.address,
-                chain_id=self.chain_manager.chain_id,
+                sack=self,
             ),
             **txn_args,
         )
@@ -223,13 +220,10 @@ class Ruffsack(ManagerAccessMixin):
 
         return self.modify(
             ActionType.ROTATE_SIGNERS(
-                self.head,
                 signers_to_add,
                 signers_to_remove,
                 threshold,
-                version=self.version,
-                address=self.address,
-                chain_id=self.chain_manager.chain_id,
+                sack=self,
             ),
             **txn_args,
         )
@@ -260,13 +254,7 @@ class Ruffsack(ManagerAccessMixin):
         new_guard = self.conversion_manager.convert(new_guard, AddressType)
 
         return self.modify(
-            ActionType.SET_ADMIN_GUARD(
-                self.head,
-                new_guard,
-                version=self.version,
-                address=self.address,
-                chain_id=self.chain_manager.chain_id,
-            ),
+            ActionType.SET_ADMIN_GUARD(new_guard, sack=self),
             **txn_args,
         )
 
@@ -291,13 +279,7 @@ class Ruffsack(ManagerAccessMixin):
         new_guard = self.conversion_manager.convert(new_guard, AddressType)
 
         return self.modify(
-            ActionType.SET_EXECUTE_GUARD(
-                self.head,
-                new_guard,
-                version=self.version,
-                address=self.address,
-                chain_id=self.chain_manager.chain_id,
-            ),
+            ActionType.SET_EXECUTE_GUARD(new_guard, sack=self),
             **txn_args,
         )
 

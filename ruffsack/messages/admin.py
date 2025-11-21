@@ -8,6 +8,8 @@ if TYPE_CHECKING:
     from ape.types.address import AddressType
     from packaging.version import Version
 
+    from .main import Ruffsack
+
 
 class ModifyBase(EIP712Message):
     _name_ = "Ruffsack Wallet"
@@ -26,16 +28,19 @@ class ActionType(Flag):
 
     def __call__(
         self,
-        parent: bytes,
         *args,
         version: "Version | None" = None,
         address: "AddressType | None" = None,
-        chain_id: int = 1,
+        chain_id: int | None = None,
+        parent: bytes | None = None,
+        sack: "Ruffsack | None" = None,
     ) -> ModifyBase:
+        assert sack or all((version, address, chain_id, parent))
+
         class Modify(ModifyBase):
-            _verifyingContract_ = address
-            _version_ = str(version)
-            _chainId_ = chain_id
+            _verifyingContract_ = address or sack.address
+            _version_ = str(version or sack.version)
+            _chainId_ = chain_id or sack.provider.chain_id
 
         arg_types: tuple[str, ...]
         match self:
@@ -51,7 +56,7 @@ class ActionType(Flag):
                 arg_types = ("address",)
 
         return Modify(  # type: ignore[call-arg]
-            parent=parent,
+            parent=parent or sack.head,
             action=self.value,
             data=abi_encode(arg_types, args),
         )

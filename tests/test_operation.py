@@ -2,7 +2,7 @@ import ape
 import pytest
 
 
-def test_configuration(networks, VERSION, THRESHOLD, owners, sack):
+def test_configuration(networks, sack, VERSION, THRESHOLD, owners):
     assert set(sack.signers) == set(o.address for o in owners)
     assert sack.threshold == THRESHOLD
 
@@ -21,7 +21,7 @@ def test_configuration(networks, VERSION, THRESHOLD, owners, sack):
     assert extensions == []
 
 
-def test_initialize(THRESHOLD, owners, singleton, sack):
+def test_initialize(singleton, sack, THRESHOLD, owners):
     assert sack.contract.IMPLEMENTATION() == singleton
 
     with ape.reverts():  # dev_message="only Proxy can initialize"):
@@ -34,7 +34,7 @@ def test_initialize(THRESHOLD, owners, singleton, sack):
 
 
 @pytest.mark.parametrize("calls", ["0_calls", "1_call", "2_calls"])
-def test_execute(accounts, THRESHOLD, owners, sack, approval_flow, calls):
+def test_execute(accounts, sack, THRESHOLD, owners, approval_flow, calls):
     txn = sack.new_batch()
 
     for idx in range(total_calls := int(calls.split("_")[0])):
