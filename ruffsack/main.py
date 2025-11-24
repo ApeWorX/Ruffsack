@@ -185,7 +185,7 @@ class Ruffsack(ManagerAccessMixin):
         self,
         signers_to_add: "Iterable[Any] | None" = None,
         signers_to_remove: "Iterable[Any] | None" = None,
-        threshold: int = 0,
+        threshold: int | None = 0,
         **txn_args,
     ) -> "ReceiptAPI | None":
         signers_to_add = (
@@ -222,7 +222,7 @@ class Ruffsack(ManagerAccessMixin):
             ActionType.ROTATE_SIGNERS(
                 signers_to_add,
                 signers_to_remove,
-                threshold,
+                threshold or self.threshold,
                 sack=self,
             ),
             **txn_args,
