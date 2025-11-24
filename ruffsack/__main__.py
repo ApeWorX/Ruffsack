@@ -9,11 +9,13 @@ from createx import CreateX
 from packaging.version import Version
 
 from ruffsack import Factory
+from ruffsack.cli import ruffsack_argument
 from ruffsack.packages import MANIFESTS
 from ruffsack.packages import PackageType, NEXT_VERSION
 
 if TYPE_CHECKING:
     from ape.api.accounts import AccountAPI
+    from ape.contracts import ContractInstance
 
 
 def version_option():
@@ -114,6 +116,149 @@ def new(version, threshold, tag, signers, account):
         sender=account,
     )
     click.secho(f"New Ruffsack deployed: {sack.address}", fg="yellow")
+
+
+@cli.group()
+def config():
+    """Commands to modify on-chain configuration"""
+
+
+@config.command(cls=ConnectedProviderCommand)
+@version_option()
+@account_option("--submitter")
+@ruffsack_argument()
+def migrate(version: Version, submitter: "AccountAPI", ruffsack: Ruffsack):
+    """Migrate the version of your Ruffsack"""
+
+    if (current_version := ruffsack.version) == version:
+        raise click.UsageError("Cannot migrate to the same version")
+
+    if click.confirm(f"Migrate from {current_version} to {version}?"):
+        ruffsack.migrate(new_version=version, submitter=submitter)
+
+
+@config.command(cls=ConnectedProviderCommand)
+@click.option(
+    "--add",
+    "signers_to_add",
+    multiple=True,
+    callback=_get_accounts,
+    help="Add signers to Ruffsack",
+)
+@click.option(
+    "--remove",
+    "signers_to_remove",
+    multiple=True,
+    callback=_get_accounts,
+    help="Remove signers from Ruffsack",
+)
+@click.option("--threshold", type=int, default=None, help="Change signing threshold")
+@account_option("--submitter")
+@ruffsack_argument()
+def signers(
+    signers_to_add: list[str],
+    signers_to_remove: list[str],
+    threshold: int | None,
+    submitter: "AccountAPI",
+    ruffsack: Ruffsack,
+):
+    """Rotate signers and/or change signer threshold"""
+
+    if not signers_to_add and not signers_to_remove and not threshold:
+        raise click.UsageError("No modifications detected")
+
+    click.echo("Current signers:\n- " + "\n- ".join(ruffsack.signers))
+
+    if signers_to_remove:
+        click.echo("Remove:\n- " + "\n- ".join(signers_to_remove))
+
+    if signers_to_add:
+        click.echo("Add:\n- " + "\n- ".join(signers_to_add))
+
+    if threshold:
+        click.echo(f"Modify threshold from {ruffsack.threshold} to {threshold}")
+
+    if click.confirm("Proceed?"):
+        ruffsack.rotate_signers(
+            signers_to_add=signers_to_add,
+            signers_to_remove=signers_to_remove,
+            threshold=threshold,
+            submitter=submitter,
+        )
+
+
+@config.group()
+def admin_guard():
+    """View and configure the Admin Guard in a Ruffsack"""
+
+
+@admin_guard.command(name="view", cls=ConnectedProviderCommand)
+@ruffsack_argument()
+def view_admin_guard(ruffsack: Ruffsack):
+    """Show Admin Guard in Ruffsack (if any)"""
+
+    if admin_guard := ruffsack.admin_guard:
+        click.echo(str(admin_guard))
+
+
+@config.group()
+def execute_guard():
+    """View and configure the Execute Guard in a Ruffsack"""
+
+
+@execute_guard.command(name="view", cls=ConnectedProviderCommand)
+@ruffsack_argument()
+def view_execute_guard(ruffsack: Ruffsack):
+    """Show Execute Guard in Ruffsack (if any)"""
+
+    if execute_guard := ruffsack.execute_guard:
+        click.echo(str(execute_guard))
+
+
+@config.group()
+def modules():
+    """View and configure the Modules in a Ruffsack"""
+
+
+@modules.command(name="list", cls=ConnectedProviderCommand)
+@ruffsack_argument()
+def list_modules(ruffsack: Ruffsack):
+    """List Modules in Ruffsack (if any)"""
+
+    for module in ruffsack.modules:
+        click.echo(str(module))
+
+
+@modules.command(name="enable", cls=ConnectedProviderCommand)
+@account_option("--submitter")
+@ruffsack_argument()
+@click.argument("module")
+def enable_module(
+    submitter: "AccountAPI", ruffsack: Ruffsack, module: "ContractInstance"
+):
+    """Enable Module in Ruffsack"""
+
+    if module in ruffsack.modules:
+        raise click.UsageError(f"Module {module} already enabled")
+
+    elif click.confirm(f"Enable module {module}?"):
+        ruffsack.modules.enable(module, submitter=submitter)
+
+
+@modules.command(name="disable", cls=ConnectedProviderCommand)
+@account_option("--submitter")
+@ruffsack_argument()
+@click.argument("module")
+def disable_module(
+    submitter: "AccountAPI", ruffsack: Ruffsack, module: "ContractInstance"
+):
+    """Disable Module in Ruffsack"""
+
+    if module not in ruffsack.modules:
+        raise click.UsageError(f"Module {module} is not enabled")
+
+    elif click.confirm(f"Disable module {module}?"):
+        ruffsack.modules.disable(module, submitter=submitter)
 
 
 @cli.group()
