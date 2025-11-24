@@ -8,14 +8,15 @@ from ape.types import AddressType
 from createx import CreateX
 from packaging.version import Version
 
-from ruffsack import Factory
-from ruffsack.cli import ruffsack_argument
-from ruffsack.packages import MANIFESTS
-from ruffsack.packages import PackageType, NEXT_VERSION
+from .cli import ruffsack_argument
+from .factory import Factory
+from .packages import MANIFESTS, PackageType, NEXT_VERSION
 
 if TYPE_CHECKING:
     from ape.api.accounts import AccountAPI
     from ape.contracts import ContractInstance
+
+    from .main import Ruffsack
 
 
 def version_option():
@@ -127,7 +128,7 @@ def config():
 @version_option()
 @account_option("--submitter")
 @ruffsack_argument()
-def migrate(version: Version, submitter: "AccountAPI", ruffsack: Ruffsack):
+def migrate(version: Version, submitter: "AccountAPI", ruffsack: "Ruffsack"):
     """Migrate the version of your Ruffsack"""
 
     if (current_version := ruffsack.version) == version:
@@ -160,7 +161,7 @@ def signers(
     signers_to_remove: list[str],
     threshold: int | None,
     submitter: "AccountAPI",
-    ruffsack: Ruffsack,
+    ruffsack: "Ruffsack",
 ):
     """Rotate signers and/or change signer threshold"""
 
@@ -194,7 +195,7 @@ def admin_guard():
 
 @admin_guard.command(name="view", cls=ConnectedProviderCommand)
 @ruffsack_argument()
-def view_admin_guard(ruffsack: Ruffsack):
+def view_admin_guard(ruffsack: "Ruffsack"):
     """Show Admin Guard in Ruffsack (if any)"""
 
     if admin_guard := ruffsack.admin_guard:
@@ -208,7 +209,7 @@ def execute_guard():
 
 @execute_guard.command(name="view", cls=ConnectedProviderCommand)
 @ruffsack_argument()
-def view_execute_guard(ruffsack: Ruffsack):
+def view_execute_guard(ruffsack: "Ruffsack"):
     """Show Execute Guard in Ruffsack (if any)"""
 
     if execute_guard := ruffsack.execute_guard:
@@ -222,7 +223,7 @@ def modules():
 
 @modules.command(name="list", cls=ConnectedProviderCommand)
 @ruffsack_argument()
-def list_modules(ruffsack: Ruffsack):
+def list_modules(ruffsack: "Ruffsack"):
     """List Modules in Ruffsack (if any)"""
 
     for module in ruffsack.modules:
@@ -234,7 +235,7 @@ def list_modules(ruffsack: Ruffsack):
 @ruffsack_argument()
 @click.argument("module")
 def enable_module(
-    submitter: "AccountAPI", ruffsack: Ruffsack, module: "ContractInstance"
+    submitter: "AccountAPI", ruffsack: "Ruffsack", module: "ContractInstance"
 ):
     """Enable Module in Ruffsack"""
 
@@ -250,7 +251,7 @@ def enable_module(
 @ruffsack_argument()
 @click.argument("module")
 def disable_module(
-    submitter: "AccountAPI", ruffsack: Ruffsack, module: "ContractInstance"
+    submitter: "AccountAPI", ruffsack: "Ruffsack", module: "ContractInstance"
 ):
     """Disable Module in Ruffsack"""
 
