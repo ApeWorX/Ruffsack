@@ -94,12 +94,12 @@ def propose_from_simulation():
 
                 cmd(*args)
 
-            cli_ctx.logger.info(f"Found {len(batch.message.calls)} calls in simulation")
+            cli_ctx.logger.info(f"Found {len(batch.calls)} calls in simulation")
 
             batch(submit=submit, sender=proposer)
 
             # NOTE: So our `ruffsack queue commit` command can get the latest hash if not committed
-            return batch.message._message_hash_
+            return batch.hash
 
         cli.help = cmd.__doc__
         return cli

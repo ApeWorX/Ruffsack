@@ -46,7 +46,7 @@ def test_execute(accounts, sack, THRESHOLD, owners, approval_flow, calls):
 
     if approval_flow == "onchain":
         for owner in owners[:THRESHOLD]:
-            sack.contract.set_approval(txn.message._message_hash_, sender=owner)
+            sack.contract.set_approval(txn.hash, sender=owner)
 
     assert (receipt := sack.execute(txn, sender=owners[0]))
 
@@ -64,4 +64,4 @@ def test_execute(accounts, sack, THRESHOLD, owners, approval_flow, calls):
     else:
         assert receipt.events == []
 
-    assert sack.head == txn.message._message_hash_
+    assert sack.head == txn.hash
