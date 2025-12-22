@@ -1,6 +1,6 @@
 # @version 0.4.3
 """
-@title DaypackFactory
+@title Ruffsack Factory
 @license Apache-2.0
 @author ApeWorX LTD.
 """
