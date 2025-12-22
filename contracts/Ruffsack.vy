@@ -39,8 +39,8 @@ IMPLEMENTATION: public(address)
 # @dev The last message hash (`Modify` or `Execute` struct) that was executed
 head: public(bytes32)
 
-# @dev Set of pre-approved transaction hashes, indexed by signer
-approved: public(HashMap[bytes32, HashMap[address, bool]])
+# @dev Mapping of pre-approved transaction hashes to approval timestamps, indexed by signer
+approved: public(HashMap[bytes32, HashMap[address, uint256]])
 
 # Signer properties
 # @dev All current signers (unordered)
@@ -112,7 +112,10 @@ def signers() -> DynArray[address, 11]:
 @external
 def set_approval(msghash: bytes32, approved: bool = True):
     assert msg.sender in self._signers, "Not a signer"
-    self.approved[msghash][msg.sender] = approved
+    if approved:
+        self.approved[msghash][msg.sender] = block.timestamp
+    else:
+        self.approved[msghash][msg.sender] = 0
 
 
 def _verify_signatures(msghash: bytes32, signatures: DynArray[Bytes[65], 11]):
@@ -121,11 +124,11 @@ def _verify_signatures(msghash: bytes32, signatures: DynArray[Bytes[65], 11]):
     already_approved: DynArray[address, 11] = []
 
     for signer: address in signers:
-        if self.approved[msghash][signer]:
+        if self.approved[msghash][signer] <= block.timestamp:
             already_approved.append(signer)  # NOTE: Track for use in next loop
             approvals_needed -= 1  # dev: underflow
             # NOTE: Get some gas back by deleting storage
-            self.approved[msghash][signer] = False
+            self.approved[msghash][signer] = 0
 
         if approvals_needed == 0:
             return  # Skip signature verification because we have enough pre-approvals
