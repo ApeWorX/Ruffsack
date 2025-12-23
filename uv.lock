@@ -308,7 +308,7 @@ wheels = [
 
 [[package]]
 name = "caravan-py"
-version = "0.2.0"
+version = "0.2.1"
 source = { editable = "." }
 dependencies = [
     { name = "createx" },
@@ -593,7 +593,7 @@ name = "cytoolz"
 version = "1.1.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "toolz" },
+    { name = "toolz", marker = "implementation_name == 'cpython'" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/bd/d4/16916f3dc20a3f5455b63c35dcb260b3716f59ce27a93586804e70e431d5/cytoolz-1.1.0.tar.gz", hash = "sha256:13a7bf254c3c0d28b12e2290b82aed0f0977a4c2a2bf84854fcdc7796a29f3b0", size = 642510, upload-time = "2025-10-19T00:44:56.174Z" }
 wheels = [
