@@ -2,9 +2,9 @@ from typing import TYPE_CHECKING
 
 import pytest
 from packaging.version import Version
-from ruffsack import Factory
-from ruffsack.packages import MANIFESTS, PackageType
-from ruffsack.queue import QueueManager
+from caravan import Factory
+from caravan.packages import MANIFESTS, PackageType
+from caravan.queue import QueueManager
 
 if TYPE_CHECKING:
     from ape.api import AccountAPI
@@ -23,8 +23,8 @@ def deployer(accounts):
 
 @pytest.fixture(scope="session")
 def factory(project, deployer):
-    proxy_initcode = project.RuffsackProxy.contract_type.get_deployment_bytecode()
-    return Factory(deployer.deploy(project.RuffsackFactory, proxy_initcode).address)
+    proxy_initcode = project.CaravanProxy.contract_type.get_deployment_bytecode()
+    return Factory(deployer.deploy(project.CaravanFactory, proxy_initcode).address)
 
 
 @pytest.fixture(

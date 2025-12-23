@@ -1,5 +1,5 @@
 from packaging.version import Version
-from ruffsack.messages import ActionType
+from caravan.messages import ActionType
 
 
 def test_upgrade(VERSION, owners, create_release, singleton, sack):

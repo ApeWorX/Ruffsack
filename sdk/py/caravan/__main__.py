@@ -14,9 +14,9 @@ from ape.cli import (
 from ape.types import AddressType, HexBytes
 from packaging.version import Version
 
-from ruffsack.settings import USER_CONFIG_DIR
+from caravan.settings import USER_CONFIG_DIR
 
-from .cli import version_option, ruffsack_argument, parent_option
+from .cli import version_option, caravan_argument, parent_option
 from .factory import Factory
 from .packages import PackageType
 
@@ -24,12 +24,12 @@ if TYPE_CHECKING:
     from ape.api.accounts import AccountAPI
     from ape.api.networks import NetworkAPI
 
-    from .main import Ruffsack
+    from .main import Caravan
 
 
 @click.group()
 def cli():
-    """Manage Ruffsack wallets (https://ruffsack.xyz)"""
+    """Manage Caravan wallets (https://caravan.box)"""
 
 
 # TODO: Add to ape?
@@ -90,7 +90,7 @@ def new_wallet(network, version, threshold, tag, signers, account):
         tag=tag,
         sender=account,
     )
-    click.secho(f"RuffsackProxy deployed: {sack.address}", fg="green")
+    click.secho(f"CaravanProxy deployed: {sack.address}", fg="green")
 
     if network.is_local:
         return  # NOTE: Do not track emphemeral wallets
@@ -162,15 +162,15 @@ def config():
 @config.command(cls=ConnectedProviderCommand)
 @version_option()
 @parent_option()
-@ruffsack_argument()
-def migrate(version: Version, parent: HexBytes | None, ruffsack: "Ruffsack"):
+@caravan_argument()
+def migrate(version: Version, parent: HexBytes | None, caravan: "Caravan"):
     """Migrate the version of your Wallet"""
 
-    if (current_version := ruffsack.version) == version:
+    if (current_version := caravan.version) == version:
         raise click.UsageError("Cannot migrate to the same version")
 
     if click.confirm(f"Migrate from {current_version} to {version}?"):
-        item = ruffsack.migrate(new_version=version, parent=parent)
+        item = caravan.migrate(new_version=version, parent=parent)
         click.echo(
             click.style("SUCCESS: ", fg="green") + f"proposed '{item.hash.hex()}'."
         )
@@ -193,20 +193,20 @@ def migrate(version: Version, parent: HexBytes | None, ruffsack: "Ruffsack"):
 )
 @click.option("--threshold", type=int, default=None, help="Change signing threshold")
 @parent_option()
-@ruffsack_argument()
+@caravan_argument()
 def signers(
     signers_to_add: list[str],
     signers_to_remove: list[str],
     threshold: int | None,
     parent: HexBytes | None,
-    ruffsack: "Ruffsack",
+    caravan: "Caravan",
 ):
     """Rotate Wallet signers and/or change Wallet threshold"""
 
     if not signers_to_add and not signers_to_remove and not threshold:
         raise click.UsageError("No modifications detected")
 
-    click.echo("Current signers:\n- " + "\n- ".join(ruffsack.signers))
+    click.echo("Current signers:\n- " + "\n- ".join(caravan.signers))
 
     if signers_to_remove:
         click.echo("Remove:\n- " + "\n- ".join(signers_to_remove))
@@ -215,10 +215,10 @@ def signers(
         click.echo("Add:\n- " + "\n- ".join(signers_to_add))
 
     if threshold:
-        click.echo(f"Modify threshold from {ruffsack.threshold} to {threshold}")
+        click.echo(f"Modify threshold from {caravan.threshold} to {threshold}")
 
     if click.confirm("Proceed?"):
-        item = ruffsack.rotate_signers(
+        item = caravan.rotate_signers(
             signers_to_add=signers_to_add,
             signers_to_remove=signers_to_remove,
             threshold=threshold,
@@ -240,29 +240,29 @@ def admin_guard():
 
 
 @admin_guard.command(name="view", cls=ConnectedProviderCommand)
-@ruffsack_argument()
-def view_admin_guard(ruffsack: "Ruffsack"):
+@caravan_argument()
+def view_admin_guard(caravan: "Caravan"):
     """Show Admin Guard in Wallet (if any)"""
 
-    if admin_guard := ruffsack.admin_guard:
+    if admin_guard := caravan.admin_guard:
         click.echo(str(admin_guard))
 
 
 @admin_guard.command(name="set", cls=ConnectedProviderCommand)
 @parent_option()
-@ruffsack_argument()
+@caravan_argument()
 @click.argument("new_guard")
 def set_admin_guard(
-    parent: HexBytes | None, ruffsack: "Ruffsack", new_guard: AddressType
+    parent: HexBytes | None, caravan: "Caravan", new_guard: AddressType
 ):
     """Set Admin Guard in Wallet"""
 
-    if admin_guard := ruffsack.admin_guard:
+    if admin_guard := caravan.admin_guard:
         click.echo(f"Old: {admin_guard}")
 
     click.echo(f"New: {new_guard}")
     if click.confirm("Proceed?"):
-        item = ruffsack.set_admin_guard(new_guard, parent=parent)
+        item = caravan.set_admin_guard(new_guard, parent=parent)
         click.echo(
             click.style("SUCCESS: ", fg="green") + f"proposed '{item.hash.hex()}'."
         )
@@ -270,18 +270,18 @@ def set_admin_guard(
 
 @admin_guard.command(name="rm", cls=ConnectedProviderCommand)
 @parent_option()
-@ruffsack_argument()
-def remove_admin_guard(parent: HexBytes | None, ruffsack: "Ruffsack"):
+@caravan_argument()
+def remove_admin_guard(parent: HexBytes | None, caravan: "Caravan"):
     """Remove Admin Guard in Wallet"""
 
-    if admin_guard := ruffsack.admin_guard:
+    if admin_guard := caravan.admin_guard:
         click.echo(f"Old: {admin_guard}")
 
     else:
         raise click.UsageError("No op")
 
     if click.confirm("Proceed?"):
-        item = ruffsack.set_admin_guard(parent=parent)
+        item = caravan.set_admin_guard(parent=parent)
         click.echo(
             click.style("SUCCESS: ", fg="green") + f"proposed '{item.hash.hex()}'."
         )
@@ -293,29 +293,29 @@ def execute_guard():
 
 
 @execute_guard.command(name="view", cls=ConnectedProviderCommand)
-@ruffsack_argument()
-def view_execute_guard(ruffsack: "Ruffsack"):
+@caravan_argument()
+def view_execute_guard(caravan: "Caravan"):
     """Show Execute Guard in Wallet (if any)"""
 
-    if execute_guard := ruffsack.execute_guard:
+    if execute_guard := caravan.execute_guard:
         click.echo(str(execute_guard))
 
 
 @execute_guard.command(name="set", cls=ConnectedProviderCommand)
 @parent_option()
-@ruffsack_argument()
+@caravan_argument()
 @click.argument("new_guard")
 def set_execute_guard(
-    parent: HexBytes | None, ruffsack: "Ruffsack", new_guard: AddressType
+    parent: HexBytes | None, caravan: "Caravan", new_guard: AddressType
 ):
     """Set Admin Guard in Wallet"""
 
-    if execute_guard := ruffsack.execute_guard:
+    if execute_guard := caravan.execute_guard:
         click.echo(f"Old: {execute_guard}")
 
     click.echo(f"New: {new_guard}")
     if click.confirm("Proceed?"):
-        item = ruffsack.set_execute_guard(new_guard, parent=parent)
+        item = caravan.set_execute_guard(new_guard, parent=parent)
         click.echo(
             click.style("SUCCESS: ", fg="green") + f"proposed '{item.hash.hex()}'."
         )
@@ -323,18 +323,18 @@ def set_execute_guard(
 
 @execute_guard.command(name="rm", cls=ConnectedProviderCommand)
 @parent_option()
-@ruffsack_argument()
-def remove_execute_guard(parent: HexBytes | None, ruffsack: "Ruffsack"):
+@caravan_argument()
+def remove_execute_guard(parent: HexBytes | None, caravan: "Caravan"):
     """Remove Admin Guard in Wallet"""
 
-    if execute_guard := ruffsack.execute_guard:
+    if execute_guard := caravan.execute_guard:
         click.echo(f"Old: {execute_guard}")
 
     else:
         raise click.UsageError("No op")
 
     if click.confirm("Proceed?"):
-        item = ruffsack.set_execute_guard(parent=parent)
+        item = caravan.set_execute_guard(parent=parent)
         click.echo(
             click.style("SUCCESS: ", fg="green") + f"proposed '{item.hash.hex()}'."
         )
@@ -346,26 +346,26 @@ def modules():
 
 
 @modules.command(name="list", cls=ConnectedProviderCommand)
-@ruffsack_argument()
-def list_modules(ruffsack: "Ruffsack"):
+@caravan_argument()
+def list_modules(caravan: "Caravan"):
     """List Modules in Wallet (if any)"""
 
-    for module in ruffsack.modules:
+    for module in caravan.modules:
         click.echo(str(module))
 
 
 @modules.command(name="enable", cls=ConnectedProviderCommand)
 @account_option("--submitter")
-@ruffsack_argument()
+@caravan_argument()
 @click.argument("module")
-def enable_module(parent: HexBytes | None, ruffsack: "Ruffsack", module: AddressType):
+def enable_module(parent: HexBytes | None, caravan: "Caravan", module: AddressType):
     """Enable Module in Wallet"""
 
-    if module in ruffsack.modules:
+    if module in caravan.modules:
         raise click.UsageError(f"Module {module} already enabled")
 
     elif click.confirm(f"Enable module {module}?"):
-        item = ruffsack.modules.enable(module, parent=parent)
+        item = caravan.modules.enable(module, parent=parent)
         click.echo(
             click.style("SUCCESS: ", fg="green") + f"proposed '{item.hash.hex()}'."
         )
@@ -373,16 +373,16 @@ def enable_module(parent: HexBytes | None, ruffsack: "Ruffsack", module: Address
 
 @modules.command(name="disable", cls=ConnectedProviderCommand)
 @parent_option()
-@ruffsack_argument()
+@caravan_argument()
 @click.argument("module")
-def disable_module(parent: HexBytes | None, ruffsack: "Ruffsack", module: AddressType):
+def disable_module(parent: HexBytes | None, caravan: "Caravan", module: AddressType):
     """Disable Module in Wallet"""
 
-    if module not in ruffsack.modules:
+    if module not in caravan.modules:
         raise click.UsageError(f"Module {module} is not enabled")
 
     elif click.confirm(f"Disable module {module}?"):
-        item = ruffsack.modules.disable(module, parent=parent)
+        item = caravan.modules.disable(module, parent=parent)
         click.echo(
             click.style("SUCCESS: ", fg="green") + f"proposed '{item.hash.hex()}'."
         )
@@ -398,8 +398,8 @@ def queue():
 @account_option("--proposer")
 @click.option("--submit", is_flag=True, default=False)
 @click.option("--stop-at", default=None)
-@ruffsack_argument()
-def run(cli_ctx, network, proposer, submit, stop_at, ruffsack):
+@caravan_argument()
+def run(cli_ctx, network, proposer, submit, stop_at, caravan):
     """
     Run all scripts to ensure local Wallet queue matches
 
@@ -410,7 +410,7 @@ def run(cli_ctx, network, proposer, submit, stop_at, ruffsack):
     that msghash does not exist in the off-chain queue.
 
     To enable this, scripts under `scripts/` must be properly named, and all use
-    `ruffsack.cli.propose_from_simulation`.
+    `caravan.cli.propose_from_simulation`.
     """
 
     if not (
@@ -430,7 +430,7 @@ def run(cli_ctx, network, proposer, submit, stop_at, ruffsack):
         f"Does not match hash length of {hashlen}: '{stop_at}'"
     )
 
-    parent = ruffsack.head
+    parent = caravan.head
     cli_ctx.logger.info(f"Current head: {parent.to_0x_hex()}")
 
     while available_queue_scripts and parent[:hashlen] != stop_at:
@@ -443,9 +443,9 @@ def run(cli_ctx, network, proposer, submit, stop_at, ruffsack):
             raise click.UsageError(f"No command `cli` detected in {script}.")
 
         cli_ctx.logger.info(f"Running '{script}':\n\n  {cmd.help}\n")
-        # NOTE: This matches signature from `ruffsack.cli:propose_from_simulation`
+        # NOTE: This matches signature from `caravan.cli:propose_from_simulation`
         parent = cmd.callback.__wrapped__(
-            cli_ctx, network, proposer, parent, submit, ruffsack
+            cli_ctx, network, proposer, parent, submit, caravan
         )
 
         cli_ctx.logger.success(f"New head set: {parent.to_0x_hex()}")
@@ -454,30 +454,30 @@ def run(cli_ctx, network, proposer, submit, stop_at, ruffsack):
 
 
 @queue.command(cls=ConnectedProviderCommand)
-@ruffsack_argument()
-def status(ruffsack: "Ruffsack"):
+@caravan_argument()
+def status(caravan: "Caravan"):
     """View the current state of the Wallet's off-chain queue"""
 
     def traverse_queue(parent: HexBytes, depth: int = 0):
-        for item in ruffsack.queue.children(parent):
+        for item in caravan.queue.children(parent):
             click.echo(
-                f"{'  ' * depth}﹂{item}: ({item.confirmations}/{ruffsack.threshold})"
+                f"{'  ' * depth}﹂{item}: ({item.confirmations}/{caravan.threshold})"
             )
             for field, value in item.message.render().items():
                 click.echo(f"{'  ' * depth}  {field}: {value}")
             traverse_queue(item.hash, depth=depth + 1)
 
-    current_head = ruffsack.head
+    current_head = caravan.head
     click.echo(f"{current_head.hex()}: (on-chain)")
     traverse_queue(current_head)
 
 
 @queue.command(cls=ConnectedProviderCommand)
-@ruffsack_argument()
+@caravan_argument()
 @click.argument("itemhash", type=HexBytes)
-def show(ruffsack: "Ruffsack", itemhash: HexBytes):
-    item = ruffsack.queue.find(itemhash)
-    click.echo(f"Confirmations: {item.confirmations}/{ruffsack.threshold}")
+def show(caravan: "Caravan", itemhash: HexBytes):
+    item = caravan.queue.find(itemhash)
+    click.echo(f"Confirmations: {item.confirmations}/{caravan.threshold}")
 
     for field, value in item.message.render().items():
         click.echo(f"  {field}: {value}")
@@ -485,10 +485,10 @@ def show(ruffsack: "Ruffsack", itemhash: HexBytes):
 
 @queue.command(cls=ConnectedProviderCommand)
 @account_option("--submitter")
-@ruffsack_argument()
+@caravan_argument()
 @click.argument("new_head", type=HexBytes)
-def merge(submitter: "AccountAPI", ruffsack: "Ruffsack", new_head: HexBytes):
-    ruffsack.merge(new_head, sender=submitter)
+def merge(submitter: "AccountAPI", caravan: "Caravan", new_head: HexBytes):
+    caravan.merge(new_head, sender=submitter)
 
 
 @cli.group()

@@ -1,16 +1,16 @@
 // SPDX-License-Identifier: Apache-2.0
 pragma solidity 0.8.30;
 
-interface IRuffsack {
+interface ICaravan {
     function initialize(address[] memory signers, uint256 threshold) external;
 }
 
 /**
- *  @title RuffsackProxy
+ *  @title CaravanProxy
  *  @author ApeWorX LTD.
  */
-contract RuffsackProxy {
-    // NOTE: Must be first slot, this matches the same storage variable in `Ruffsack`
+contract CaravanProxy {
+    // NOTE: Must be first slot, this matches the same storage variable in `Caravan`
     address internal IMPLEMENTATION;
 
     // NOTE: NO OTHER VARIABLES ALLOWED
@@ -18,7 +18,7 @@ contract RuffsackProxy {
     constructor(address implementation, address[] memory signers, uint256 threshold) {
         IMPLEMENTATION = implementation;
 
-        bytes memory data = abi.encodeCall(IRuffsack.initialize, (signers, threshold));
+        bytes memory data = abi.encodeCall(ICaravan.initialize, (signers, threshold));
         (bool success, bytes memory err) = implementation.delegatecall(data);
         if (!success) revert(string(err));
     }

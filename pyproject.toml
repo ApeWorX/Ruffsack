@@ -3,14 +3,13 @@ requires = ["setuptools", "setuptools-scm"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "ruffsack"
-version = "0.1.0"
-description = "Ruffsack: A rugged multisig wallet for everyday adventures"
+name = "caravan-py"
+version = "0.2.0"
+description = "Caravan: A shared wallet for everyday adventures"
 readme = "README.md"
 requires-python = ">=3.11"
 dependencies = [
-    "eth-ape>=0.8.41",
-    "eip712>=0.2.14", # NOTE: Pin because an important fix is needed
+    "eth-ape>=0.8.43",
     "createx>=0.1.1",
 ]
 
@@ -28,12 +27,14 @@ dev = [
 name = "ApeWorX LTD"
 
 [project.scripts]
-ruffsack = "ruffsack.__main__:cli"
+caravan = "caravan.__main__:cli"
 
-[tool.setuptools]
-packages = ["ruffsack"]
+[tool.setuptools.packages.find]
+where = [ "sdk/py" ]
+include = ["caravan"]
+
 [tool.setuptools.package-data]
-ruffsack = ["manifests/*.json"]
+caravan = ["manifests/*.json"]
 
 [tool.setuptools_scm]
 # NOTE: Required for `setuptools-scm` to function
@@ -49,7 +50,7 @@ name = "vyper"
 #[[tool.ape.deployments.ethereum.deterministic]]
 [[tool.ape.deployments.ethereum.local]]
 address = "0x4862bF0d25F19E72e40E0Fd7E90ce4836bEd4A2c"
-contract_type = "RuffsackFactory"
+contract_type = "CaravanFactory"
 
 # Singleton
 # NOTE: Update latest Singleton when contract code changes
@@ -57,4 +58,4 @@ contract_type = "RuffsackFactory"
 #[[tool.ape.deployments.ethereum.deterministic]]
 [[tool.ape.deployments.ethereum.local]]
 address = "0xb5c126f2c2023c6af7FD71941fF24feCfAEdC085"
-contract_type = "Ruffsack"
+contract_type = "Caravan"

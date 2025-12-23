@@ -2,10 +2,10 @@
 @name Admin Guard Interface
 """
 
-from .. import IRuffsack
+from .. import ICaravan
 
 @external
-def preUpdateCheck(action: IRuffsack.ActionType, data: Bytes[65535]): ...
+def preUpdateCheck(action: ICaravan.ActionType, data: Bytes[65535]): ...
 
 @external
 def postUpdateCheck(): ...

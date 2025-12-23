@@ -5,7 +5,7 @@ from ape.logging import logger
 from ape.utils import ManagerAccessMixin, cached_property
 from packaging.version import Version
 
-from .main import Ruffsack
+from .main import Caravan
 from .packages import STABLE_VERSION, PackageType
 
 if TYPE_CHECKING:
@@ -18,7 +18,7 @@ class Factory(ManagerAccessMixin):
             self.address = address
 
         elif len((factory_type := PackageType.FACTORY()).deployments) == 0:
-            raise RuntimeError("No RuffsackFactory deployment on this chain")
+            raise RuntimeError("No CaravanFactory deployment on this chain")
 
         else:
             # NOTE: Override cached value of `contract`
@@ -58,7 +58,7 @@ class Factory(ManagerAccessMixin):
         version: Version | str = STABLE_VERSION,
         tag: str | None = None,
         **txn_args,
-    ) -> Ruffsack:
+    ) -> Caravan:
         if threshold is None:
             threshold = len(signers) // 2
 
@@ -73,10 +73,10 @@ class Factory(ManagerAccessMixin):
 
         receipt = self.contract.new(*args, **txn_args)
 
-        if len(events := self.contract.NewRuffsack.from_receipt(receipt)) != 1:
+        if len(events := self.contract.NewCaravan.from_receipt(receipt)) != 1:
             raise RuntimeError(f"No deployment detected in '{receipt.txn_hash}'")
 
-        new_sack = Ruffsack(address=events[0].new_sack, version=version, factory=self)
+        new_sack = Caravan(address=events[0].new_sack, version=version, factory=self)
 
         if self.provider.network.explorer:
             try:

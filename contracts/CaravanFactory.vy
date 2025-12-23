@@ -1,15 +1,15 @@
 # @version 0.4.3
 """
-@title Ruffsack Factory
+@title Caravan Factory
 @license Apache-2.0
 @author ApeWorX LTD.
 """
 
 PROXY_INITCODE: public(immutable(Bytes[1024]))
 
-from . import IRuffsack
+from . import ICaravan
 
-event NewRuffsack:
+event NewCaravan:
     release: indexed(address)
     deployer: indexed(address)
     salt: indexed(bytes32)
@@ -27,7 +27,7 @@ def __init__(proxy_initcode: Bytes[1024]):
 
 @external
 def new(
-    release: IRuffsack,
+    release: ICaravan,
     signers: DynArray[address, 11],
     threshold: uint256,
     tag: String[64] = "",
@@ -47,7 +47,7 @@ def new(
         threshold,
         salt=salt,
     )
-    log NewRuffsack(
+    log NewCaravan(
         release=release.address,
         deployer=msg.sender,
         salt=salt,

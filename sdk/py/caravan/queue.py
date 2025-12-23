@@ -103,7 +103,7 @@ class QueueItem(BaseModel):
 
 
 class QueueManager(BaseModel):
-    """Specialized Manager for indexing Ruffsack's off-chain message queue & signatures"""
+    """Specialized Manager for indexing Caravan's off-chain message queue & signatures"""
 
     # QueueItem => list[QueueItem.hash]
     queue: dict[QueueItem, list[HexBytes]] = dict()

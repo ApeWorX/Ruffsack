@@ -1,9 +1,9 @@
 from .factory import Factory
-from .main import Ruffsack
+from .main import Caravan
 from .packages import PackageType
 
 __all__ = [
     Factory.__name__,
     PackageType.__name__,
-    Ruffsack.__name__,
+    Caravan.__name__,
 ]

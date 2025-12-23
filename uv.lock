@@ -294,6 +294,45 @@ wheels = [
 ]
 
 [[package]]
+name = "caravan-py"
+version = "0.2.0"
+source = { editable = "." }
+dependencies = [
+    { name = "createx" },
+    { name = "eth-ape" },
+]
+
+[package.dev-dependencies]
+dev = [
+    { name = "ape-foundry" },
+    { name = "ape-solidity" },
+    { name = "ape-vyper" },
+]
+test = [
+    { name = "ape-foundry" },
+    { name = "ape-solidity" },
+    { name = "ape-vyper" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "createx", specifier = ">=0.1.1" },
+    { name = "eth-ape", specifier = ">=0.8.43" },
+]
+
+[package.metadata.requires-dev]
+dev = [
+    { name = "ape-foundry", specifier = ">=0.8.10" },
+    { name = "ape-solidity", specifier = ">=0.8.5" },
+    { name = "ape-vyper", specifier = ">=0.8.9" },
+]
+test = [
+    { name = "ape-foundry", specifier = ">=0.8.10" },
+    { name = "ape-solidity", specifier = ">=0.8.5" },
+    { name = "ape-vyper", specifier = ">=0.8.9" },
+]
+
+[[package]]
 name = "cbor2"
 version = "5.7.1"
 source = { registry = "https://pypi.org/simple" }
@@ -598,15 +637,6 @@ wheels = [
 ]
 
 [[package]]
-name = "dataclassy"
-version = "0.11.1"
-source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/87/71/849a7708be159ff815ba9f2a671202c7ed7951f6810bb86555e379882935/dataclassy-0.11.1.tar.gz", hash = "sha256:ad6622cb91e644d13f68768558983fbc22c90a8ff7e355638485d18b9baf1198", size = 28166, upload-time = "2021-10-18T20:03:11.868Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/ce/0c/0ef792a555612974aedcd164a93c11fbbb83fc8ed5bfefa9799ea09ddc6b/dataclassy-0.11.1-py3-none-any.whl", hash = "sha256:bcb030d3d700cf9b1597042bbc8375b92773e6f68f65675a7071862c0ddb87f5", size = 23942, upload-time = "2021-10-18T20:03:09.704Z" },
-]
-
-[[package]]
 name = "decorator"
 version = "5.2.1"
 source = { registry = "https://pypi.org/simple" }
@@ -617,19 +647,17 @@ wheels = [
 
 [[package]]
 name = "eip712"
-version = "0.2.14"
+version = "0.3.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "dataclassy" },
-    { name = "eth-abi" },
     { name = "eth-account" },
-    { name = "eth-typing" },
+    { name = "eth-pydantic-types" },
     { name = "eth-utils" },
-    { name = "hexbytes" },
+    { name = "pydantic" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/60/a1/8857817759d75272f27bbb13fe6a1216d70e951765599aeea0c3f763f4da/eip712-0.2.14.tar.gz", hash = "sha256:2b6e971372fbb47bd21cd0f1bf4a88e17499e22d97fcf704c86774b8e5f91766", size = 64777, upload-time = "2025-10-17T20:04:12.485Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/37/aa/8e994538da435bf21d325afd3e2b8ddec4c575af8e3b313a1a68ae137a52/eip712-0.3.0.tar.gz", hash = "sha256:384717b473af75cd83270cbc5374636ad55ee92997ee5952330cdb32cbef93ad", size = 61191, upload-time = "2025-12-12T00:29:23.001Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/76/a8/4a69de2f8bdabf7a72fdaa3347b68f5ee049218ea712e7d1e90e0116c58a/eip712-0.2.14-py3-none-any.whl", hash = "sha256:44393f8880aa2e78acdc59b543071a95557647a11503b208d9bfe1093cd31069", size = 11408, upload-time = "2025-10-17T20:04:11.12Z" },
+    { url = "https://files.pythonhosted.org/packages/17/83/35d61c2f564680a8cbf12f129ea8159e5b3e3eb61ce3bf31b8b008264886/eip712-0.3.0-py3-none-any.whl", hash = "sha256:da13f740227ccb4a486192790c6f169ef18e5dbd424b5488f57c32d59e10fd4c", size = 11618, upload-time = "2025-12-12T00:29:21.676Z" },
 ]
 
 [[package]]
@@ -669,7 +697,7 @@ wheels = [
 
 [[package]]
 name = "eth-ape"
-version = "0.8.41"
+version = "0.8.43"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "asttokens" },
@@ -708,9 +736,9 @@ dependencies = [
     { name = "watchdog" },
     { name = "web3", extra = ["tester"] },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/70/82/4d8c33eda20482d3db3297ea2c2866808b492d995267ce8983abc5cd66a0/eth_ape-0.8.41.tar.gz", hash = "sha256:8bb5ac0bbffc0231e60a1baad920e47461d51c228c357b4e4de68ec93fff2374", size = 726097, upload-time = "2025-10-23T20:02:44.886Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/07/c9/aedde73e5f430d038e4910b27aadd5c2253a7aaa9375272ecb8281e9d92d/eth_ape-0.8.43.tar.gz", hash = "sha256:14b7cb939a57bfffcd1977cb130760002a9e80efac355edfceffbc9ba6981070", size = 727885, upload-time = "2025-12-23T01:07:19.705Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/70/51/dd9b2aad8bb596052a2ac66b6a8e141b497fbaa6eaf119f71e3e6ed8e82a/eth_ape-0.8.41-py3-none-any.whl", hash = "sha256:8ab8babb00760c9076f344ff6459088fee374b4fe7bc5ef74c41d29f3dba0fee", size = 423009, upload-time = "2025-10-23T20:02:43.061Z" },
+    { url = "https://files.pythonhosted.org/packages/75/48/1c66837037021c5b66fa2b7c1d6a89e6c57ce473b6e3587743fa200dfe28/eth_ape-0.8.43-py3-none-any.whl", hash = "sha256:58f0db5ac990b98794b7f36d6d1b89a0a3cbf1bb9818eb688f06b1574c40d53a", size = 424067, upload-time = "2025-12-23T01:07:18.081Z" },
 ]
 
 [[package]]
@@ -771,7 +799,7 @@ wheels = [
 
 [[package]]
 name = "eth-pydantic-types"
-version = "0.2.2"
+version = "0.2.4"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "cchecksum" },
@@ -781,9 +809,9 @@ dependencies = [
     { name = "pydantic" },
     { name = "typing-extensions" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/0a/c4/304928d02331fc69107fa089d7b503fb3f0baa241470b48cabe9109e5bb8/eth_pydantic_types-0.2.2.tar.gz", hash = "sha256:0e02a29662bf94578d03b1c6ed8ab225a993ab8e386a7d5ff341bd0a7b5fdfb1", size = 72063, upload-time = "2025-08-26T20:27:41.001Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/b7/30/9ebb40ee88aff434406a6e6b527e31059b0f9e93a797b3364426070b1ed2/eth_pydantic_types-0.2.4.tar.gz", hash = "sha256:ee1cfbf3e85f0e3bac8a8711858a019c0abcd786117ea02013d083ea855d9dd8", size = 69440, upload-time = "2025-12-02T21:45:33.386Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/f3/05/706c95e0a578e68f662be8c61581ae2a7f0c2a3460ea559d47893d45955c/eth_pydantic_types-0.2.2-py3-none-any.whl", hash = "sha256:3eabd97d1896119e68a2539170e1a42bd50b2ce15e0256ab869eabebaa33909c", size = 19477, upload-time = "2025-08-26T20:27:39.645Z" },
+    { url = "https://files.pythonhosted.org/packages/35/08/848c57948fe720909b8481534a71eaef7e54037570054dff7f16a83f49d7/eth_pydantic_types-0.2.4-py3-none-any.whl", hash = "sha256:0fa9c4157ee87641095f663184a16267e477d8a06e71db9db6b8189938411e82", size = 19001, upload-time = "2025-12-02T21:45:31.916Z" },
 ]
 
 [[package]]
@@ -1781,7 +1809,7 @@ wheels = [
 
 [[package]]
 name = "py-geth"
-version = "5.6.0"
+version = "6.4.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "pydantic" },
@@ -1790,9 +1818,9 @@ dependencies = [
     { name = "types-requests" },
     { name = "typing-extensions" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/0a/30/b6bf796d652d9d48be91012e06aa98376318c933eb2f7e2446af6671dcef/py_geth-5.6.0.tar.gz", hash = "sha256:c2d22bd06ebd39861e683fb5210a13a0f496025f05c9a7638c234966f5499396", size = 36386, upload-time = "2025-05-07T17:01:59.897Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/1d/8f/516c4be48668ed050d56837ebbe810dac048f28ac17dfb69e4753f87b678/py_geth-6.4.0.tar.gz", hash = "sha256:9cc9cc596534626a70badd7d32866f8660b60078b37c5cec6f88a61e3b291198", size = 36970, upload-time = "2025-12-05T16:20:46.019Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/e2/84/bf5cb7b900aad875199459fd1da253cda018bdbe39aaa8689b13c2bd7b53/py_geth-5.6.0-py3-none-any.whl", hash = "sha256:77663217ccd394c58811406585b1d314b5bf983e7d4e4356701cc022ab603fa7", size = 28235, upload-time = "2025-05-07T17:01:58.31Z" },
+    { url = "https://files.pythonhosted.org/packages/d0/f5/b55fca84b6d653015452f486077718808dd8c2cc69b627d23df22bb7e3a9/py_geth-6.4.0-py3-none-any.whl", hash = "sha256:9964510409cee86bc9057775dc3d57c2fd42a5fe3b8f21ba8ff83e2b9f1362d4", size = 28480, upload-time = "2025-12-05T16:20:44.883Z" },
 ]
 
 [[package]]
@@ -2267,47 +2295,6 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/1b/2d/439b0728a92964a04d9c88ea1ca9ebb128893fbbd5834faa31f987f2fd4c/rlp-4.1.0.tar.gz", hash = "sha256:be07564270a96f3e225e2c107db263de96b5bc1f27722d2855bd3459a08e95a9", size = 33429, upload-time = "2025-02-04T22:05:59.089Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/99/fb/e4c0ced9893b84ac95b7181d69a9786ce5879aeb3bbbcbba80a164f85d6a/rlp-4.1.0-py3-none-any.whl", hash = "sha256:8eca394c579bad34ee0b937aecb96a57052ff3716e19c7a578883e767bc5da6f", size = 19973, upload-time = "2025-02-04T22:05:57.05Z" },
-]
-
-[[package]]
-name = "ruffsack"
-version = "0.1.0"
-source = { editable = "." }
-dependencies = [
-    { name = "createx" },
-    { name = "eip712" },
-    { name = "eth-ape" },
-]
-
-[package.dev-dependencies]
-dev = [
-    { name = "ape-foundry" },
-    { name = "ape-solidity" },
-    { name = "ape-vyper" },
-]
-test = [
-    { name = "ape-foundry" },
-    { name = "ape-solidity" },
-    { name = "ape-vyper" },
-]
-
-[package.metadata]
-requires-dist = [
-    { name = "createx", specifier = ">=0.1.1" },
-    { name = "eip712", specifier = ">=0.2.14" },
-    { name = "eth-ape", specifier = ">=0.8.41" },
-]
-
-[package.metadata.requires-dev]
-dev = [
-    { name = "ape-foundry", specifier = ">=0.8.10" },
-    { name = "ape-solidity", specifier = ">=0.8.5" },
-    { name = "ape-vyper", specifier = ">=0.8.9" },
-]
-test = [
-    { name = "ape-foundry", specifier = ">=0.8.10" },
-    { name = "ape-solidity", specifier = ">=0.8.5" },
-    { name = "ape-vyper", specifier = ">=0.8.9" },
 ]
 
 [[package]]

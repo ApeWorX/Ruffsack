@@ -17,18 +17,18 @@ Once patched and released as a major version, those artifacts will have to get p
 
 ### Python SDK
 
-The Python SDK (e.g. `ruffsack` library) is published to PyPI on every patch tag of this repo.
-This is the primary artifact for the indexing service component, and is also intended as the primary way to [add support for Ruffsack](#deploying-to-a-new-chain) on your preferred chain (via the built-in `ruffsack` CLI).
+The Python SDK (e.g. `caravan` library) is published to PyPI on every patch tag of this repo.
+This is the primary artifact for the indexing service component, and is also intended as the primary way to [add support for Caravan](#deploying-to-a-new-chain) on your preferred chain (via the built-in `caravan` CLI).
 
 ### Indexing Service
 
-When a new version of the Python SDK is released, this will cause a release of an update to the `ghcr.io/apeworx/ruffsack-service:stable` container image tag.
+When a new version of the Python SDK is released, this will cause a release of an update to the `ghcr.io/apeworx/caravan-service:stable` container image tag.
 Version tags will also be published alongside `stable`, but `stable` will be the only recommended and supported version of the image available.
 There will also be a `latest` tag that matches the current version available on `main` for use by those who require an un-released version of the service, but it's use is not recommended to use that one.
 
 ### Javascript SDK
 
-The Javascript module for working with Ruffsack will be published for each release, alongside the Python SDK.
+The Javascript module for working with Caravan will be published for each release, alongside the Python SDK.
 The corresponding version of these modules are used in the published frontend.
 
 ### Frontend
@@ -39,9 +39,9 @@ No intermediate versions of the frontend will be maintained by this monorepo.
 
 ## Deploying to a New Chain
 
-You can create a deployment of Ruffsack on any chain supported by Ape easily using the built-in `ruffsack` CLI.
+You can create a deployment of Caravan on any chain supported by Ape easily using the built-in `caravan` CLI.
 
-However, there are some pre-requisites that are needed first before deploying Ruffsack to a new chain:
+However, there are some pre-requisites that are needed first before deploying Caravan to a new chain:
 
 1. The [`CREATE2` opcode](https://eips.ethereum.org/EIPS/eip-1014) must be supported on that chain
 2. [CreateX](https://createx.rocks) must be deployed on that chain
@@ -51,9 +51,9 @@ Once you have met the pre-requisites, it is easy to perform this procedure by us
 
 ```sh
 # Deploy the proxy factory/registry contract
-$ ruffsack sudo deploy factory --network ... --account ...
+$ caravan sudo deploy factory --network ... --account ...
 
-# Deploy a supported version of the Ruffsack contract
+# Deploy a supported version of the Caravan contract
 # NOTE: do this for each version you want to support...
-$ ruffsack sudo deploy singleton [--version <supported version>] --network ... --account ...
+$ caravan sudo deploy singleton [--version <supported version>] --network ... --account ...
 ```

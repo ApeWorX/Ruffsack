@@ -1,7 +1,7 @@
 import pytest
 from ape.utils import ZERO_ADDRESS
 from packaging.version import Version
-from ruffsack.messages import Execute
+from caravan.messages import Execute
 
 
 def test_size_limits():

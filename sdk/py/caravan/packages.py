@@ -27,9 +27,9 @@ except IndexError:
 
 
 class PackageType(str, Enum):
-    SINGLETON = "Ruffsack"
-    PROXY = "RuffsackProxy"
-    FACTORY = "RuffsackFactory"
+    SINGLETON = "Caravan"
+    PROXY = "CaravanProxy"
+    FACTORY = "CaravanFactory"
 
     def __call__(self, version: Version | str = STABLE_VERSION) -> "ContractContainer":
         if not isinstance(version, Version):

@@ -2,10 +2,10 @@
 @name Execute Guard Interface
 """
 
-from .. import IRuffsack
+from .. import ICaravan
 
 @external
-def preExecuteCheck(call: IRuffsack.Call): ...
+def preExecuteCheck(call: ICaravan.Call): ...
 
 @external
 def postExecuteCheck(): ...

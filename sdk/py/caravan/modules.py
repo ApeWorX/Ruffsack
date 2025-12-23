@@ -11,11 +11,11 @@ if TYPE_CHECKING:
 
     from ape.contracts import ContractInstance
 
-    from .main import Ruffsack
+    from .main import Caravan
 
 
 class ModuleManager(ManagerAccessMixin):
-    def __init__(self, sack: "Ruffsack"):
+    def __init__(self, sack: "Caravan"):
         self.sack = sack
 
         self._cached_modules: set["ContractInstance"] = set()

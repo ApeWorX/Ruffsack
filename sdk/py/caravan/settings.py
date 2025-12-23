@@ -10,7 +10,7 @@ USER_CACHE_DIR: Path = (
         and path.is_absolute()
     )
     else (Path.home() / ".cache")
-) / "ruffsack"
+) / "caravan"
 USER_CACHE_DIR.mkdir(exist_ok=True)
 
 USER_CONFIG_DIR: Path = (
@@ -21,5 +21,5 @@ USER_CONFIG_DIR: Path = (
         and path.is_absolute()
     )
     else (Path.home() / ".config")
-) / "ruffsack"
+) / "caravan"
 USER_CONFIG_DIR.mkdir(exist_ok=True)

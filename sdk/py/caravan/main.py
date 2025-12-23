@@ -29,7 +29,7 @@ if TYPE_CHECKING:
 
 
 # TODO: Subclass Ape's AccountAPI and make it a plugin
-class Ruffsack(ManagerAccessMixin):
+class Caravan(ManagerAccessMixin):
     def __init__(
         self,
         address: AddressType,
@@ -84,7 +84,7 @@ class Ruffsack(ManagerAccessMixin):
     def contract(self) -> ContractInstance:
         proxy_code = PackageType.PROXY().contract_type.get_runtime_bytecode()
         if self.provider.get_code(self.address) != proxy_code:
-            raise RuntimeError(f"{self.address} is not a RuffsackProxy")
+            raise RuntimeError(f"{self.address} is not a CaravanProxy")
 
         return PackageType.SINGLETON(self.version).at(
             self.address,

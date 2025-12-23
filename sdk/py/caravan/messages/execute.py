@@ -13,7 +13,7 @@ if TYPE_CHECKING:
     from ape.types import AddressType
     from packaging.version import Version
 
-    from ..main import Ruffsack
+    from ..main import Caravan
     from ..queue import QueueItem
 
 
@@ -33,7 +33,7 @@ class Execute(EIP712Message, ManagerAccessMixin):
     parent: abi.bytes32
     calls: list[Call] = []
 
-    _sack: "Ruffsack | None" = PrivateAttr(default=None)
+    _sack: "Caravan | None" = PrivateAttr(default=None)
 
     @property
     def hash(self) -> HexBytes32:
@@ -51,7 +51,7 @@ class Execute(EIP712Message, ManagerAccessMixin):
     @classmethod
     def new(
         cls,
-        sack: "Ruffsack | None" = None,
+        sack: "Caravan | None" = None,
         parent: abi.bytes32 | None = None,
         version: "Version | None" = None,
         address: "AddressType | None" = None,
@@ -61,7 +61,7 @@ class Execute(EIP712Message, ManagerAccessMixin):
             raise ValueError("Must provide either `sack=` or the remaining kwargs.")
 
         eip712_domain = EIP712Domain(
-            name="Ruffsack Wallet",
+            name="Caravan Wallet",
             verifyingContract=address or sack.address,
             version=str(version) if version else str(sack.version),
             chainId=chain_id or cls.chain_manager.chain_id,
@@ -76,12 +76,12 @@ class Execute(EIP712Message, ManagerAccessMixin):
     ) -> Self:
         if len(self.calls) >= self.MAX_CALLS:
             raise RuntimeError(
-                "Ruffsack does not support more than 8 calls per execute transaction."
+                "Caravan does not support more than 8 calls per execute transaction."
             )
 
         if len(data) > self.MAX_CALLDATA_SIZE:
             raise RuntimeError(
-                "Ruffsack calls do not support data field larger than"
+                "Caravan calls do not support data field larger than"
                 f" {self.MAX_CALLDATA_SIZE} bytes."
             )
 
@@ -119,14 +119,14 @@ class Execute(EIP712Message, ManagerAccessMixin):
             for txn in sack_account.history[starting_nonce:]:
                 self.add_from_receipt(txn)
 
-    def stage(self, sack: "Ruffsack | None" = None) -> "QueueItem":
+    def stage(self, sack: "Caravan | None" = None) -> "QueueItem":
         if not (sack or (sack := self._sack)):
             raise RuntimeError("Must provider `sack=` to execute")
 
         return sack.stage(self)
 
     def __call__(
-        self, sack: "Ruffsack | None" = None, **txn_args
+        self, sack: "Caravan | None" = None, **txn_args
     ) -> "ReceiptAPI | None":
         if not (sack or (sack := self._sack)):
             raise RuntimeError("Must provider `sack=` to execute")

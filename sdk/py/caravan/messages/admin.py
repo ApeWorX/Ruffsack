@@ -10,7 +10,7 @@ if TYPE_CHECKING:
     from ape.types.address import AddressType
     from packaging.version import Version
 
-    from .main import Ruffsack
+    from .main import Caravan
 
 
 class Modify(EIP712Message):
@@ -51,11 +51,11 @@ class ActionType(Flag):
         address: "AddressType | None" = None,
         chain_id: int | None = None,
         parent: bytes | None = None,
-        sack: "Ruffsack | None" = None,
+        sack: "Caravan | None" = None,
     ) -> Modify:
         assert sack or all((version, address, chain_id, parent))
         eip712_domain = EIP712Domain(
-            name="Ruffsack Wallet",
+            name="Caravan Wallet",
             verifyingContract=address or sack.address,
             version=str(version or sack.version),
             chainId=chain_id or sack.provider.chain_id,

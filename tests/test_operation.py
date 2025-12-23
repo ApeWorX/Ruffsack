@@ -13,7 +13,7 @@ def test_configuration(networks, sack, VERSION, THRESHOLD, owners):
         sack.contract.eip712Domain()
     )
     assert enabled == b"\x0f"  # NOTE: all but `salt` is enabled
-    assert name == "Ruffsack Wallet"
+    assert name == "Caravan Wallet"
     assert version == str(VERSION)
     assert chain_id == networks.provider.chain_id
     assert address == sack.address

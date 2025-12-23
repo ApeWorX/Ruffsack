@@ -12,7 +12,7 @@ from ape.exceptions import ConversionError
 from ape.types import AddressType, HexBytes
 from packaging.version import Version
 
-from .main import Ruffsack
+from .main import Caravan
 from .packages import MANIFESTS, NEXT_VERSION
 
 
@@ -57,16 +57,16 @@ def version_option():
     )
 
 
-def ruffsack_argument():
-    def ruffsack_callback(ctx, param, value):
+def caravan_argument():
+    def caravan_callback(ctx, param, value):
         from ape import accounts, convert
 
         if value in accounts.aliases:
-            if not isinstance(account := accounts.load(value), Ruffsack):
+            if not isinstance(account := accounts.load(value), Caravan):
                 raise click.BadParameter(
                     ctx=ctx,
                     param=param,
-                    message=f"Alias {value} is not a Ruffsack wallet.",
+                    message=f"Alias {value} is not a Caravan wallet.",
                 )
 
             return account
@@ -81,9 +81,9 @@ def ruffsack_argument():
                 message=f"Value '{value}' is not convertible to an address",
             ) from e
 
-        return Ruffsack(address)
+        return Caravan(address)
 
-    return click.argument("ruffsack", type=AddressType, callback=ruffsack_callback)
+    return click.argument("caravan", type=AddressType, callback=caravan_callback)
 
 
 def parent_option():
@@ -135,19 +135,19 @@ def propose_from_simulation():
             default=False,
             help="Submit the transaction",
         )
-        @ruffsack_argument()
+        @caravan_argument()
         def cli(
             cli_ctx: ApeCliContextObject,
             network: "NetworkAPI",
             proposer: "AccountAPI",
             parent: HexBytes | None,
             submit: bool,
-            ruffsack: "Ruffsack",
+            caravan: "Caravan",
         ) -> HexBytes:
             if network.is_local and parent is not None:
-                ruffsack.set_head(parent)
+                caravan.set_head(parent)
 
-            batch = ruffsack.new_batch(parent=parent)
+            batch = caravan.new_batch(parent=parent)
 
             with batch.add_from_simulation() as sack_account:
                 args: list = list()
@@ -166,7 +166,7 @@ def propose_from_simulation():
             else:
                 batch.stage()
 
-            # NOTE: So our `ruffsack queue commit` command can get the latest hash if not committed
+            # NOTE: So our `caravan queue commit` command can get the latest hash if not committed
             return batch.hash
 
         cli.help = cmd.__doc__

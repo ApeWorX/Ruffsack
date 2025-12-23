@@ -1,17 +1,17 @@
 # pragma version 0.4.3
 """
-@title Ruffsack
+@title Caravan
 @license Apache-2.0
 @author ApeWorX LTD.
 """
 
-from . import IRuffsack
-implements: IRuffsack
+from . import ICaravan
+implements: ICaravan
 
 from .guards import IAdminGuard
 from .guards import IExecuteGuard
 
-NAME: constant(String[15]) = "Ruffsack Wallet"
+NAME: constant(String[15]) = "Caravan Wallet"
 NAMEHASH: constant(bytes32) = keccak256(NAME)
 # NOTE: Update this before each release (controls EIP712 Domain)
 VERSION: public(immutable(String[12]))
@@ -32,7 +32,7 @@ EXECUTE_TYPEHASH: constant(bytes32) = keccak256(
     "Execute(bytes32 parent,Call[] calls)Call(address target,uint256 value,bytes data)"
 )
 
-# @dev The current implementation address for `RuffsackProxy`
+# @dev The current implementation address for `CaravanProxy`
 IMPLEMENTATION: public(address)
 # NOTE: Must be first slot, this will be used by upgradeable proxy for delegation
 
@@ -191,7 +191,7 @@ def _rotate_signers(
 
     self._signers = new_signers
 
-    log IRuffsack.SignersRotated(
+    log ICaravan.SignersRotated(
         executor=msg.sender,
         num_signers=len(new_signers),
         threshold=self.threshold,  # NOTE: In case there was no change
@@ -202,7 +202,7 @@ def _rotate_signers(
 
 @external
 def modify(
-    action: IRuffsack.ActionType,
+    action: ICaravan.ActionType,
     data: Bytes[65535],
     signatures: DynArray[Bytes[65], 11] = [],
     # NOTE: Skip argument to use on-chain approvals
@@ -218,16 +218,16 @@ def modify(
     if admin_guard.address != empty(address):
         extcall admin_guard.preUpdateCheck(action, data)
 
-    if action == IRuffsack.ActionType.UPGRADE_IMPLEMENTATION:
+    if action == ICaravan.ActionType.UPGRADE_IMPLEMENTATION:
         new: address = abi_decode(data, address)
-        log IRuffsack.ImplementationUpgraded(
+        log ICaravan.ImplementationUpgraded(
             executor=msg.sender,
             old=self.IMPLEMENTATION,
             new=new,
         )
         self.IMPLEMENTATION = new
 
-    elif action == IRuffsack.ActionType.ROTATE_SIGNERS:
+    elif action == ICaravan.ActionType.ROTATE_SIGNERS:
         signers_to_add: DynArray[address, 11] = []
         signers_to_rm: DynArray[address, 11] = []
         threshold: uint256 = 0
@@ -237,30 +237,30 @@ def modify(
         )
         self._rotate_signers(signers_to_add, signers_to_rm, threshold)
 
-    elif action == IRuffsack.ActionType.CONFIGURE_MODULE:
+    elif action == ICaravan.ActionType.CONFIGURE_MODULE:
         module: address = empty(address)
         enabled: bool = False
         module, enabled = abi_decode(data, (address, bool))
-        log IRuffsack.ModuleUpdated(
+        log ICaravan.ModuleUpdated(
             executor=msg.sender,
             module=module,
             enabled=enabled,
         )
         self.module_enabled[module] = enabled
 
-    elif action == IRuffsack.ActionType.SET_ADMIN_GUARD:
+    elif action == ICaravan.ActionType.SET_ADMIN_GUARD:
         # NOTE: Don't use `admin_guard` as it would override above
         guard: IAdminGuard = abi_decode(data, IAdminGuard)
-        log IRuffsack.AdminGuardUpdated(
+        log ICaravan.AdminGuardUpdated(
             executor=msg.sender,
             old=admin_guard.address,
             new=guard.address,
         )
         self.admin_guard = guard
 
-    elif action == IRuffsack.ActionType.SET_EXECUTE_GUARD:
+    elif action == ICaravan.ActionType.SET_EXECUTE_GUARD:
         guard: IExecuteGuard = abi_decode(data, IExecuteGuard)
-        log IRuffsack.ExecuteGuardUpdated(
+        log ICaravan.ExecuteGuardUpdated(
             executor=msg.sender,
             old=self.execute_guard.address,
             new=guard.address,
@@ -277,7 +277,7 @@ def modify(
 
 @external
 def execute(
-    calls: DynArray[IRuffsack.Call, 8],
+    calls: DynArray[ICaravan.Call, 8],
     signatures: DynArray[Bytes[65], 11] = [],
     # NOTE: Skip argument to use on-chain approvals, or for module use
 ):
@@ -286,7 +286,7 @@ def execute(
 
         # Step 1: Encode struct to list of 32 byte hash of items
         encoded_call_members: DynArray[bytes32, 8] = []
-        for call: IRuffsack.Call in calls:
+        for call: ICaravan.Call in calls:
             encoded_call_members.append(
                 # NOTE: Per EIP712, structs are encoded as the hash of their contents (incl. Typehash)
                 keccak256(
@@ -316,7 +316,7 @@ def execute(
         self.head = msghash
 
     guard: IExecuteGuard = self.execute_guard
-    for call: IRuffsack.Call in calls:
+    for call: ICaravan.Call in calls:
         if guard.address != empty(address):
             extcall guard.preExecuteCheck(call)
 
@@ -331,7 +331,7 @@ def execute(
         if guard.address != empty(address):
             extcall guard.postExecuteCheck()
 
-        log IRuffsack.Executed(
+        log ICaravan.Executed(
             executor=msg.sender,
             success=success,
             target=call.target,
