@@ -49,7 +49,7 @@ name = "vyper"
 # Factory
 #[[tool.ape.deployments.ethereum.deterministic]]
 [[tool.ape.deployments.ethereum.local]]
-address = "0xAD2473EF637110a6189A07e5284f695E072F8C96"
+address = "0x04579FFC45fE10A7901B88EaEc8F4850b847D37c"
 contract_type = "CaravanFactory"
 
 # Singleton
