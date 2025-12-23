@@ -1,6 +1,7 @@
 from typing import TYPE_CHECKING
 
 from ape.types import AddressType
+from ape.logging import logger
 from ape.utils import ManagerAccessMixin, cached_property
 from packaging.version import Version
 
@@ -75,4 +76,13 @@ class Factory(ManagerAccessMixin):
         if len(events := self.contract.NewRuffsack.from_receipt(receipt)) != 1:
             raise RuntimeError(f"No deployment detected in '{receipt.txn_hash}'")
 
-        return Ruffsack(address=events[0].new_sack, version=version, factory=self)
+        new_sack = Ruffsack(address=events[0].new_sack, version=version, factory=self)
+
+        if self.provider.network.explorer:
+            try:
+                self.provider.network.explorer.publish_contract(new_sack.contract)
+
+            except Exception as e:
+                logger.warn_from_exception(e, f"Error verifying {new_sack.contract}")
+
+        return new_sack
