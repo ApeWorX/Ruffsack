@@ -10,6 +10,7 @@ readme = "README.md"
 requires-python = ">=3.11"
 dependencies = [
     "eth-ape>=0.8.43",
+    "eip712>=0.3.3",  # NOTE: Special pin needed
     "createx>=0.1.1",
 ]
 
