@@ -513,7 +513,12 @@ def factory(network: "NetworkAPI", account: "AccountAPI"):
     try:
         factory = PackageType.FACTORY.deploy(sender=account)
 
-    except AccountsError:
+    except AccountsError as e:
+        if not network.is_local:
+            raise click.UsageError(
+                "CreateX (https://createx.rocks) is not available on this chain."
+            ) from e
+            
         click.echo(
             click.style("WARNING:", fg="yellow") + "  Using non-determinstic deployment"
         )
@@ -541,7 +546,12 @@ def singleton(network: "NetworkAPI", version: Version, account: "AccountAPI"):
     try:
         singleton = PackageType.SINGLETON.deploy(version=version, sender=account)
 
-    except AccountsError:
+    except AccountsError as e:
+        if not network.is_local:
+            raise click.UsageError(
+                "CreateX (https://createx.rocks) is not available on this chain."
+            ) from e
+            
         click.echo(
             click.style("WARNING:", fg="yellow") + "  Using non-determinstic deployment"
         )
