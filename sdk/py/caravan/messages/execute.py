@@ -20,10 +20,11 @@ if TYPE_CHECKING:
 class Call(BaseModel):
     target: abi.address
     value: abi.uint256
+    success_required: bool
     data: HexBytes
 
     def render(self) -> str:
-        return f"{self.target}({self.data}, value={self.value})"
+        return f"{self.target}({self.data}, value={self.value}, required={self.success_required})"
 
 
 class Execute(EIP712Message, ManagerAccessMixin):
@@ -72,7 +73,11 @@ class Execute(EIP712Message, ManagerAccessMixin):
         return self
 
     def add_raw(
-        self, target: "AddressType", value: int = 0, data: HexBytes = b""
+        self,
+        target: "AddressType",
+        value: int = 0,
+        success_required: bool = True,
+        data: HexBytes = b"",
     ) -> Self:
         if len(self.calls) >= self.MAX_CALLS:
             raise RuntimeError(
@@ -85,20 +90,31 @@ class Execute(EIP712Message, ManagerAccessMixin):
                 f" {self.MAX_CALLDATA_SIZE} bytes."
             )
 
-        self.calls.append(Call(target=target, value=value, data=data))
+        self.calls.append(
+            Call(
+                target=target,
+                value=value,
+                success_required=success_required,
+                data=data,
+            )
+        )
         return self
 
-    def add(self, call, *args, value: int = 0) -> Self:
+    def add(self, call, *args, value: int = 0, success_required: bool = True) -> Self:
         return self.add_raw(
             target=call.contract.address,
             value=value,
+            success_required=success_required,
             data=call.encode_input(*args),
         )
 
-    def add_from_receipt(self, receipt: "ReceiptAPI") -> Self:
+    def add_from_receipt(
+        self, receipt: "ReceiptAPI", success_required: bool = True
+    ) -> Self:
         return self.add_raw(
             target=receipt.receiver,
             value=receipt.value,
+            success_required=success_required,
             data=receipt.data,
         )
 
