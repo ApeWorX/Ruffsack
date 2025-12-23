@@ -37,12 +37,17 @@ def test_initialize(singleton, van, THRESHOLD, owners):
 def test_execute(accounts, van, owners, calls):
     msg = van.new_batch()
 
+    accounts[-1].transfer(van.contract, "10 ether")
+    starting_balance = {van.contract.address: van.contract.balance}
     for idx in range(total_calls := int(calls.split("_")[0])):
-        msg.add_raw(
-            target=accounts[idx].address,
-            value=idx,
+        msg.add_transfer(
+            target=accounts[idx],
+            value=f"{idx + 1} ether",
             data=f"{idx}".encode("utf-8"),
         )
+
+        # NOTE: track for later assertion
+        starting_balance[a.address] = (a := accounts[idx]).balance
 
     assert van.head == msg.parent
     assert msg not in van.queue
@@ -51,6 +56,9 @@ def test_execute(accounts, van, owners, calls):
     assert msg in van.queue
 
     receipt = van.commit(msg, sender=owners[0])
+    if total_calls > 0:
+        # NOTE: We need this to ensure accurate tracking for later in `sum()`
+        starting_balance[owners[0].address] -= receipt.gas_used * receipt.gas_price
     assert van.head == msg.hash
 
     if total_calls > 0:
@@ -58,11 +66,22 @@ def test_execute(accounts, van, owners, calls):
             van.contract.Executed(
                 executor=owners[0],
                 target=account,
-                value=idx,
+                value=(idx + 1) * int(1e18),
                 data=f"{idx}".encode("utf-8"),
             )
             for idx, account in enumerate(accounts[:total_calls])
         ]
+        assert all(
+            a.balance == starting_balance[a.address] + (idx + 1) * int(1e18)
+            for idx, a in enumerate(accounts[:total_calls])
+        )
+        assert van.contract.balance == (
+            starting_balance[van.contract.address]
+            - sum(
+                a.balance - starting_balance[a.address] for a in accounts[:total_calls]
+            )
+        )
 
     else:
         assert receipt.events == []
+        assert van.contract.balance == starting_balance[van.contract.address]
