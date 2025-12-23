@@ -10,50 +10,15 @@ from ape.types import AddressType
 from createx import CreateX
 from packaging.version import Version
 
-from .cli import ruffsack_argument
+from .cli import version_option, ruffsack_argument, parent_option
 from .factory import Factory
-from .packages import MANIFESTS, PackageType, NEXT_VERSION
+from .packages import PackageType
 
 if TYPE_CHECKING:
     from ape.api.accounts import AccountAPI
     from ape.contracts import ContractInstance
 
     from .main import Ruffsack
-
-
-def version_option():
-    def _convert_version(ctx, _param, value):
-        if value is None:
-            # NOTE: Temporary until v1 is released
-            version = NEXT_VERSION
-
-        else:
-            try:
-                version = Version(value)
-
-            except ValueError as e:
-                raise click.UsageError(
-                    ctx=ctx,
-                    message=f"'{value}' is not a valid verison identifier.",
-                ) from e
-
-        if version == NEXT_VERSION:
-            click.echo(
-                click.style("WARNING:", fg="yellow")
-                + f"  Using un-released version {version}"
-            )
-
-        return version
-
-    released_versions = list(str(v) for v in MANIFESTS if v != NEXT_VERSION)
-    default_version = str(max(released_versions)) if released_versions else None
-    return click.option(
-        "--version",
-        type=click.Choice([*released_versions, str(NEXT_VERSION)]),
-        default=default_version,
-        callback=_convert_version,
-        help="Version to use when deploying the contract. Defaults to last stable release.",
-    )
 
 
 @click.group()
