@@ -86,7 +86,7 @@ class Factory(ManagerAccessMixin):
 
         proxy = Caravan(address=events[0].new_proxy, version=version, factory=self)
 
-        if self.provider.network.explorer:
+        if not self.provider.network.is_dev and self.provider.network.explorer:
             try:
                 self.provider.network.explorer.publish_contract(proxy.contract)
 

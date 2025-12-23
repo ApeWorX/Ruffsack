@@ -144,7 +144,7 @@ def propose_from_simulation():
             submit: bool,
             caravan: "Caravan",
         ) -> HexBytes:
-            if network.is_local and parent is not None:
+            if network.is_dev and parent is not None:
                 caravan.set_head(parent)
 
             batch = caravan.new_batch(parent=parent)
