@@ -229,6 +229,11 @@ def signers(
 
 
 @config.group()
+def guards():
+    """View and configure Guards in Wallet"""
+
+
+@guards.group(name="admin")
 def admin_guard():
     """View and Configure the Admin Guard in Wallet"""
 
@@ -242,7 +247,46 @@ def view_admin_guard(ruffsack: "Ruffsack"):
         click.echo(str(admin_guard))
 
 
-@config.group()
+@admin_guard.command(name="set", cls=ConnectedProviderCommand)
+@parent_option()
+@ruffsack_argument()
+@click.argument("new_guard")
+def set_admin_guard(
+    parent: HexBytes | None, ruffsack: "Ruffsack", new_guard: AddressType
+):
+    """Set Admin Guard in Wallet"""
+
+    if admin_guard := ruffsack.admin_guard:
+        click.echo(f"Old: {admin_guard}")
+
+    click.echo(f"New: {new_guard}")
+    if click.confirm("Proceed?"):
+        item = ruffsack.set_admin_guard(new_guard, parent=parent)
+        click.echo(
+            click.style("SUCCESS: ", fg="green") + f"proposed '{item.hash.hex()}'."
+        )
+
+
+@admin_guard.command(name="rm", cls=ConnectedProviderCommand)
+@parent_option()
+@ruffsack_argument()
+def remove_admin_guard(parent: HexBytes | None, ruffsack: "Ruffsack"):
+    """Remove Admin Guard in Wallet"""
+
+    if admin_guard := ruffsack.admin_guard:
+        click.echo(f"Old: {admin_guard}")
+
+    else:
+        raise click.UsageError("No op")
+
+    if click.confirm("Proceed?"):
+        item = ruffsack.set_admin_guard(parent=parent)
+        click.echo(
+            click.style("SUCCESS: ", fg="green") + f"proposed '{item.hash.hex()}'."
+        )
+
+
+@guards.group(name="execute")
 def execute_guard():
     """View and configure the Execute Guard in Wallet"""
 
@@ -254,6 +298,45 @@ def view_execute_guard(ruffsack: "Ruffsack"):
 
     if execute_guard := ruffsack.execute_guard:
         click.echo(str(execute_guard))
+
+
+@execute_guard.command(name="set", cls=ConnectedProviderCommand)
+@parent_option()
+@ruffsack_argument()
+@click.argument("new_guard")
+def set_execute_guard(
+    parent: HexBytes | None, ruffsack: "Ruffsack", new_guard: AddressType
+):
+    """Set Admin Guard in Wallet"""
+
+    if execute_guard := ruffsack.execute_guard:
+        click.echo(f"Old: {execute_guard}")
+
+    click.echo(f"New: {new_guard}")
+    if click.confirm("Proceed?"):
+        item = ruffsack.set_execute_guard(new_guard, parent=parent)
+        click.echo(
+            click.style("SUCCESS: ", fg="green") + f"proposed '{item.hash.hex()}'."
+        )
+
+
+@execute_guard.command(name="rm", cls=ConnectedProviderCommand)
+@parent_option()
+@ruffsack_argument()
+def remove_execute_guard(parent: HexBytes | None, ruffsack: "Ruffsack"):
+    """Remove Admin Guard in Wallet"""
+
+    if execute_guard := ruffsack.execute_guard:
+        click.echo(f"Old: {execute_guard}")
+
+    else:
+        raise click.UsageError("No op")
+
+    if click.confirm("Proceed?"):
+        item = ruffsack.set_execute_guard(parent=parent)
+        click.echo(
+            click.style("SUCCESS: ", fg="green") + f"proposed '{item.hash.hex()}'."
+        )
 
 
 @config.group()
