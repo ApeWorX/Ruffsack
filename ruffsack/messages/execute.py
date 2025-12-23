@@ -20,6 +20,9 @@ class Call(BaseModel):
     value: abi.uint256
     data: HexBytes
 
+    def render(self) -> str:
+        return f"{self.target}({self.data}, value={self.value})"
+
 
 class Execute(EIP712Message, ManagerAccessMixin):
     MAX_CALLS: ClassVar[int] = 8
@@ -33,6 +36,15 @@ class Execute(EIP712Message, ManagerAccessMixin):
     @property
     def hash(self) -> HexBytes32:
         return hash_message(self)
+
+    def render(self) -> dict:
+        if self.calls:
+            return {
+                "Action": "Execute",
+                "Calls": [call.render() for call in self.calls],
+            }
+
+        return {"Action": "No-op"}
 
     @classmethod
     def new(
