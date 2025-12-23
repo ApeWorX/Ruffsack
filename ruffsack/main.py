@@ -197,7 +197,11 @@ class Ruffsack(ManagerAccessMixin):
 
         # TODO: Add logging?
         self.queue.add(item := QueueItem(message=msg, signatures=signatures))
-        self.queue.save()
+
+        if not self.provider.network.is_local:
+            # NOTE: Don't save permanent changes on ephemeral networks
+            self.queue.save()
+
         return item
 
     def commit(self, msg: "Modify | Execute | HexBytes", **txn_args) -> "ReceiptAPI":
@@ -231,7 +235,10 @@ class Ruffsack(ManagerAccessMixin):
         fn = getattr(self.contract, msg.__class__.__name__.lower())
         receipt = fn(*fn_args, **txn_args)
 
-        self.queue.rebase(self.head)
+        if not self.provider.network.is_local:
+            # NOTE: Don't save permanent changes on ephemeral networks
+            self.queue.rebase(self.head)
+            self.queue.save()
 
         return receipt
 
@@ -259,7 +266,14 @@ class Ruffsack(ManagerAccessMixin):
             # TODO: Look for modified `threshold` or `self.signers`
             # TODO: Look for version migration
 
-        return txn(**txn_args)
+        receipt = txn(**txn_args)
+
+        if not self.provider.network.is_local:
+            # NOTE: Don't save permanent changes on ephemeral networks
+            self.queue.rebase(self.head)
+            self.queue.save()
+
+        return receipt
 
     #### Admin methods (uses `Modify` message type) ####
 
