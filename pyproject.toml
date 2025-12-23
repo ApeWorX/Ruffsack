@@ -58,5 +58,5 @@ contract_type = "CaravanFactory"
 # v1 (Latest)
 #[[tool.ape.deployments.ethereum.deterministic]]
 [[tool.ape.deployments.ethereum.local]]
-address = "0x685B0DEA9daF4DC73Ab9dba4bc4156d90A7F8a5d"
+address = "0xf7AC37e8A31Da4D2Fbe7687118c142dd46e63517"
 contract_type = "Caravan"
