@@ -19,6 +19,7 @@ if TYPE_CHECKING:
 
     from .factory import Factory
     from .messages.admin import ModifyBase
+    from .queue import QueueManager, QueueItem
 
 
 # TODO: Subclass Ape's AccountAPI and make it a plugin
@@ -28,25 +29,34 @@ class Ruffsack(ManagerAccessMixin):
         address: AddressType,
         version: Version | None = None,
         factory: "Factory | None" = None,
+        queue: "QueueManager | None" = None,
     ):
         self.address = address
 
         if factory:
-            # NOTE: Override cached value
+            # NOTE: Override cached value (useful for testing)
             self.factory = factory
 
         if version:
-            # NOTE: Override cached value
+            # NOTE: Override cached value (useful for testing)
             self.version = version
 
-        # TODO: Add client support
-        self.client = None
+        if queue:
+            # NOTE: Override cached value (useful for testing)
+            self.queue = queue
 
     @cached_property
     def factory(self) -> "Factory":
         from .factory import Factory
 
         return Factory()
+
+    @cached_property
+    def queue(self) -> "QueueManager":
+        # NOTE: This lets us more easily test
+        from .queue import QueueManager
+
+        return QueueManager.load(base=self.head)
 
     @cached_property
     def version(self) -> Version:
@@ -62,7 +72,7 @@ class Ruffsack(ManagerAccessMixin):
         return Version(call())
 
     def __repr__(self) -> str:
-        return f"{self.__class__.__name__}({self.address} v{self.version})"
+        return f"{self.__class__.__name__}({self.address} version={self.version})"
 
     @cached_property
     def contract(self) -> ContractInstance:
