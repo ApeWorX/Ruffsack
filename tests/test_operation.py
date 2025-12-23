@@ -34,21 +34,24 @@ def test_initialize(singleton, sack, THRESHOLD, owners):
 
 
 @pytest.mark.parametrize("calls", ["0_calls", "1_call", "2_calls"])
-def test_execute(accounts, sack, THRESHOLD, owners, approval_flow, calls):
-    txn = sack.new_batch()
+def test_execute(accounts, sack, owners, calls):
+    msg = sack.new_batch()
 
     for idx in range(total_calls := int(calls.split("_")[0])):
-        txn.add_raw(
+        msg.add_raw(
             target=accounts[idx].address,
             value=idx,
             data=f"{idx}".encode("utf-8"),
         )
 
-    if approval_flow == "onchain":
-        for owner in owners[:THRESHOLD]:
-            sack.contract.set_approval(txn.hash, sender=owner)
+    assert sack.head == msg.parent
+    assert msg not in sack.queue
 
-    assert (receipt := sack.execute(txn, sender=owners[0]))
+    sack.stage(msg)
+    assert msg in sack.queue
+
+    receipt = sack.commit(msg, sender=owners[0])
+    assert sack.head == msg.hash
 
     if total_calls > 0:
         assert receipt.events == [
@@ -63,5 +66,3 @@ def test_execute(accounts, sack, THRESHOLD, owners, approval_flow, calls):
 
     else:
         assert receipt.events == []
-
-    assert sack.head == txn.hash

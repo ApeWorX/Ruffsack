@@ -1,10 +1,17 @@
+from collections.abc import Iterator
+from functools import partial
+import itertools
 from typing import TYPE_CHECKING, Any
 
 from ape.contracts import ContractCall, ContractInstance
 from ape.exceptions import AccountsError
 from ape.types import AddressType, HexBytes, MessageSignature
+from ape.types.signatures import recover_signer
 from ape.utils import ZERO_ADDRESS, ManagerAccessMixin, cached_property
+from ape_ethereum import multicall
+from ape_ethereum.multicall.exceptions import UnsupportedChainError
 from ethpm_types.abi import ABIType, MethodABI
+from eth_utils import to_int, to_bytes, keccak
 from packaging.version import Version
 
 from .messages import ActionType, Execute
@@ -15,10 +22,9 @@ if TYPE_CHECKING:
     from collections.abc import Iterable
 
     from ape.api import AccountAPI, ReceiptAPI
-    from eip712 import EIP712Message
 
     from .factory import Factory
-    from .messages.admin import ModifyBase
+    from .messages.admin import Modify
     from .queue import QueueManager, QueueItem
 
 
@@ -121,78 +127,156 @@ class Ruffsack(ManagerAccessMixin):
 
         return local_signers
 
-    def onchain_approvals(self, msghash: "HexBytes") -> int:
-        return sum(
-            map(int, map(lambda s: self.contract.approved(msghash, s), self.signers))
-        )
+    def onchain_approvals(self, msghash: "HexBytes") -> list[AddressType]:
+        call = multicall.Call()
+
+        for signer in (signers := self.signers):
+            call.add(self.contract.approved, msghash, signer)
+
+        try:
+            approved = dict(zip(signers, call()))
+            get_approval = approved.__getitem__
+
+        except UnsupportedChainError:
+            get_approval = partial(self.contract.approved, msghash)
+
+        return list(filter(get_approval, signers))
+
+    def impersonate_signature(self, msghash: "HexBytes", signer: AddressType):
+        # NOTE: `approved` is `msg.hash => address => bool` @ slot 2
+        slot = b"\x00" * 31 + to_bytes(2)
+
+        slot = keccak(msghash + slot)
+
+        address_bytes32 = to_bytes(hexstr=signer)
+        address_bytes32 = b"\x00" * (32 - len(address_bytes32)) + address_bytes32
+        slot = keccak(address_bytes32 + slot)
+
+        self.provider.set_storage(self.address, to_int(slot), b"\x01")
+        # TODO: Use native ape slot indexing, once available
+        #       e.g. `self.contract.approved[msg.hash][signer] = bool`
 
     def get_signatures(
-        self, msg: "EIP712Message", needed: int | None = None
-    ) -> list[MessageSignature]:
-        if needed is None:
-            needed = self.threshold - self.onchain_approvals(msg.hash)
+        self, msg: "Modify | Execute", skip: set[AddressType] | None = None
+    ) -> Iterator[tuple[AddressType, MessageSignature]]:
+        """Yield off-chain signatures first from queue confirmations then ask local signers"""
 
-        signatures = []
+        if skip is None:
+            skip = set(self.onchain_approvals(msg.hash))
 
-        if self.client:
-            signatures.extend(self.client.get_signatures(msg.hash))
+        try:
+            signatures = self.queue.find(msg.hash).signatures
 
-        for signer in self.local_signers:
-            if len(signatures) >= needed:
-                # NOTE: In case using the client fetches enough signatures already
-                break
+        except IndexError:
+            # NOTE: Not in queue yet
+            signatures = {}
 
-            if signature := signer.sign_message(msg):
-                signatures.append(signature)
+        # First, yield all existing signatures in-queue (if any)
+        for sig in signatures:
+            if (address := recover_signer(msg, sig)) not in skip:
+                yield address, sig
 
-        return signatures
+            skip.add(address)
 
-    def modify(
-        self, msg: "ModifyBase", submit: bool = True, **txn_args
-    ) -> "ReceiptAPI | None":
-        if submit and msg.parent != self.head:
+        # Then, collect new signatures from local signers
+        for signer in set(self.local_signers) - skip:
+            if sig := signer.sign_message(msg):
+                yield signer.address, sig
+
+        # NOTE: If we made it here, we probably needed more signatures
+
+    def stage(self, msg: "Modify | Execute") -> "QueueItem":
+        """Stage message ``msg`` into queue, after collecting signatures from available local signers."""
+        signatures = dict(
+            # NOTE: `islice` only asks for up to N
+            itertools.islice(self.get_signatures(msg), self.threshold)
+        )
+
+        # NOTE: Otherwise we'd have an import cycle
+        from .queue import QueueItem
+
+        # TODO: Add logging?
+        self.queue.add(item := QueueItem(message=msg, signatures=signatures))
+        self.queue.save()
+        return item
+
+    def commit(self, msg: "Modify | Execute | HexBytes", **txn_args) -> "ReceiptAPI":
+        """Submit message ``msg`` on-chain, collecting signatures if needed."""
+
+        if isinstance(msg, HexBytes):
+            msg = self.queue.find(msg).message
+
+        if msg.parent != self.head:
             raise RuntimeError("Cannot execute call, wrong head")
 
         # TODO: Support `impersonate=True`
+        #       (set storage directly, so `len(approved) >= self.threshold`)
+        approved = self.onchain_approvals(msg.hash)
 
-        needed = self.threshold - self.onchain_approvals(msg.hash)
-        if needed == 0 and submit:
-            return self.contract.modify(msg.action, msg.data, **txn_args)
+        try:
+            signatures = self.queue.find(msg.hash).signatures
 
-        signatures = self.get_signatures(msg, needed=needed)
-        if (len(signatures) >= needed) and submit:
-            return self.contract.modify(
-                msg.action,
-                msg.data,
-                [sig.encode_rsv() for sig in signatures],
-                **txn_args,
-            )
+        except IndexError:
+            raise RuntimeError(f"Message {msg} not in queue. Please stage first")
 
-        elif submit:
-            raise RuntimeError(
-                f"Not enough signatures, need {needed - len(signatures)} more"
-            )
+        if (have := len(approved) + len(signatures)) < (threshold := self.threshold):
+            raise RuntimeError(f"Not enough signatures. Need {threshold - have} more.")
 
-        elif self.client:
-            # TODO: Add logging
-            self.client.submit_signatures(msg, signatures)
+        # NOTE: Skip `.parent`, contract implicitly uses `.head`
+        fn_args = list(msg)[1:]
+        if signatures:
+            # TODO: Add logging?
+            fn_args.append([sig.encode_rsv() for sig in signatures.values()])
 
-        return None
+        fn = getattr(self.contract, msg.__class__.__name__.lower())
+        receipt = fn(*fn_args, **txn_args)
+
+        self.queue.rebase(self.head)
+
+        return receipt
+
+    def merge(self, new_head: HexBytes, **txn_args) -> "ReceiptAPI":
+        """Commit **all** messages in branch from ``self.head`` to ``new_head`` on-chain."""
+
+        txn = multicall.Transaction()
+        threshold = self.threshold
+
+        for item in self.queue.get_branch(new_head):
+            fn = getattr(self.contract, item.message_type.lower())
+            # NOTE: Skip `.parent`, contract implicitly uses `.head`
+            fn_args = list(item.message)[1:]
+
+            if len(approvals := self.onchain_approvals(item.hash)) >= threshold:
+                txn.add(fn, *fn_args)
+
+            elif len(set(approvals) | set(item.signatures)) >= threshold:
+                signatures = [sig.encode_rsv() for sig in item.signatures.values()]
+                txn.add(fn, *fn_args, signatures)
+
+            else:
+                raise RuntimeError(f"Cannot merge {item}: not enough signatures")
+
+            # TODO: Look for modified `threshold` or `self.signers`
+            # TODO: Look for version migration
+
+        return txn(**txn_args)
+
+    #### Admin methods (uses `Modify` message type) ####
 
     def migrate(
         self,
         new_version: Version | str = STABLE_VERSION,
-        **txn_args,
-    ) -> "ReceiptAPI | None":
+        parent: HexBytes | None = None,
+    ) -> "QueueItem":
         if not (release := self.factory.get_release(new_version)):
             raise ValueError(f"No release for {new_version} deployed on this chain")
 
-        return self.modify(
+        return self.stage(
             ActionType.UPGRADE_IMPLEMENTATION(
                 release.address,
                 sack=self,
+                parent=parent,
             ),
-            **txn_args,
         )
 
     def rotate_signers(
@@ -200,8 +284,8 @@ class Ruffsack(ManagerAccessMixin):
         signers_to_add: "Iterable[Any] | None" = None,
         signers_to_remove: "Iterable[Any] | None" = None,
         threshold: int | None = 0,
-        **txn_args,
-    ) -> "ReceiptAPI | None":
+        parent: HexBytes | None = None,
+    ) -> "QueueItem":
         signers_to_add = (
             [self.conversion_manager.convert(s, AddressType) for s in signers_to_add]
             if signers_to_add is not None
@@ -232,24 +316,28 @@ class Ruffsack(ManagerAccessMixin):
                 f"Can't set threshold to {threshold}, must be less than/equal to {max_threshold}."
             )
 
-        return self.modify(
+        return self.stage(
             ActionType.ROTATE_SIGNERS(
                 signers_to_add,
                 signers_to_remove,
                 threshold or self.threshold,
                 sack=self,
+                parent=parent,
             ),
-            **txn_args,
         )
 
-    def add_signers(self, *signers: Any, **txn_args) -> "ReceiptAPI | None":
-        return self.rotate_signers(signers_to_add=signers, **txn_args)
+    def add_signers(self, *signers: Any, parent: HexBytes | None = None) -> "QueueItem":
+        return self.rotate_signers(signers_to_add=signers, parent=parent)
 
-    def remove_signers(self, *signers: Any, **txn_args) -> "ReceiptAPI | None":
-        return self.rotate_signers(signers_to_remove=signers, **txn_args)
+    def remove_signers(
+        self, *signers: Any, parent: HexBytes | None = None
+    ) -> "QueueItem":
+        return self.rotate_signers(signers_to_remove=signers, parent=parent)
 
-    def change_threshold(self, threshold: int, **txn_args) -> "ReceiptAPI | None":
-        return self.rotate_signers(threshold=threshold, **txn_args)
+    def change_threshold(
+        self, threshold: int, parent: HexBytes | None = None
+    ) -> "QueueItem":
+        return self.rotate_signers(threshold=threshold, parent=parent)
 
     @property
     def modules(self) -> ModuleManager:
@@ -263,21 +351,21 @@ class Ruffsack(ManagerAccessMixin):
         return None
 
     def set_admin_guard(
-        self, new_guard: Any = ZERO_ADDRESS, **txn_args
-    ) -> "ReceiptAPI | None":
+        self,
+        new_guard: Any = ZERO_ADDRESS,
+        parent: HexBytes | None = None,
+    ) -> "QueueItem":
         new_guard = self.conversion_manager.convert(new_guard, AddressType)
-
-        return self.modify(
-            ActionType.SET_ADMIN_GUARD(new_guard, sack=self),
-            **txn_args,
+        return self.stage(
+            ActionType.SET_ADMIN_GUARD(new_guard, sack=self, parent=parent)
         )
 
     @admin_guard.setter
-    def set_admin_guard_no_kwargs(self, new_guard: Any):
+    def assign_admin_guard(self, new_guard: Any):
         self.set_admin_guard(new_guard)
 
     @admin_guard.deleter
-    def delete_admin_guard_no_kwargs(self):
+    def delete_admin_guard(self):
         self.set_admin_guard()
 
     @property
@@ -288,52 +376,24 @@ class Ruffsack(ManagerAccessMixin):
         return None
 
     def set_execute_guard(
-        self, new_guard: Any = ZERO_ADDRESS, **txn_args
-    ) -> "ReceiptAPI | None":
+        self,
+        new_guard: Any = ZERO_ADDRESS,
+        parent: HexBytes | None = None,
+    ) -> "QueueItem":
         new_guard = self.conversion_manager.convert(new_guard, AddressType)
-
-        return self.modify(
-            ActionType.SET_EXECUTE_GUARD(new_guard, sack=self),
-            **txn_args,
+        return self.stage(
+            ActionType.SET_EXECUTE_GUARD(new_guard, sack=self, parent=parent)
         )
 
     @execute_guard.setter
-    def set_execute_guard_no_kwargs(self, new_guard: Any):
+    def assign_execute_guard(self, new_guard: Any):
         self.set_execute_guard(new_guard)
 
     @execute_guard.deleter
-    def delete_execute_guard_no_kwargs(self):
+    def delete_execute_guard(self):
         self.set_execute_guard()
+
+    #### Normal transactions (uses `Execute` message type)
 
     def new_batch(self, parent: HexBytes | None = None) -> Execute:
         return Execute.new(sack=self, parent=parent)
-
-    def execute(
-        self, execution: Execute, submit: bool = True, **txn_args
-    ) -> "ReceiptAPI | None":
-        if submit and execution.parent != self.head:
-            raise RuntimeError("Cannot execute call, wrong head")
-
-        # TODO: Support `impersonate=True`
-        needed = self.threshold - self.onchain_approvals(execution.hash)
-        if needed == 0 and submit:
-            return self.contract.execute(execution.calls, **txn_args)
-
-        signatures = self.get_signatures(execution, needed=needed)
-        if (len(signatures) >= needed) and submit:
-            return self.contract.execute(
-                execution.calls,
-                [sig.encode_rsv() for sig in signatures],
-                **txn_args,
-            )
-
-        elif submit:
-            raise RuntimeError(
-                f"Not enough signatures, need {needed - len(signatures)} more"
-            )
-
-        elif self.client:
-            # TODO: Add logging
-            self.client.submit_signatures(execution, signatures)
-
-        return None

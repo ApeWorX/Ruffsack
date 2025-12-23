@@ -2,23 +2,19 @@ from packaging.version import Version
 from ruffsack.messages import ActionType
 
 
-def test_upgrade(
-    VERSION, THRESHOLD, owners, create_release, singleton, sack, approval_flow
-):
+def test_upgrade(VERSION, owners, create_release, singleton, sack):
     new_version = Version(f"{VERSION}+post.0")
     new_impl = create_release(version=new_version)
 
-    if approval_flow == "onchain":
-        msg = ActionType.UPGRADE_IMPLEMENTATION(new_impl.address, sack=sack)
+    msg = ActionType.UPGRADE_IMPLEMENTATION(new_impl.address, sack=sack)
+    assert sack.head == msg.parent
+    assert msg not in sack.queue
 
-        for owner in owners[:THRESHOLD]:
-            sack.contract.set_approval(msg.hash, sender=owner)
+    sack.stage(msg)
+    assert msg in sack.queue
 
-        receipt = sack.modify(msg, sender=owners[0])
-        assert sack.head == msg.hash
-
-    else:
-        receipt = sack.migrate(new_version=new_version, sender=owners[0])
+    receipt = sack.commit(msg, sender=owners[0])
+    assert sack.head == msg.hash
 
     assert receipt.events == [
         sack.contract.ImplementationUpgraded(
@@ -30,29 +26,21 @@ def test_upgrade(
     assert sack.contract.IMPLEMENTATION() == new_impl
 
 
-def test_rotate_signers(
-    accounts, chain, VERSION, owners, THRESHOLD, sack, approval_flow
-):
-    if approval_flow == "onchain":
-        msg = ActionType.ROTATE_SIGNERS(
-            [accounts[len(owners)].address],
-            [owners[0].address],
-            sack.threshold,
-            sack=sack,
-        )
+def test_rotate_signers(accounts, owners, sack):
+    msg = ActionType.ROTATE_SIGNERS(
+        [accounts[len(owners)].address],
+        [owners[0].address],
+        sack.threshold,
+        sack=sack,
+    )
+    assert sack.head == msg.parent
+    assert msg not in sack.queue
 
-        for owner in owners[:THRESHOLD]:
-            sack.contract.set_approval(msg.hash, sender=owner)
+    sack.stage(msg)
+    assert msg in sack.queue
 
-        receipt = sack.modify(msg, sender=owners[0])
-        assert sack.head == msg.hash
-
-    else:
-        receipt = sack.rotate_signers(
-            signers_to_add=[accounts[len(owners)]],
-            signers_to_remove=[owners[0]],
-            sender=owners[0],
-        )
+    receipt = sack.commit(msg, sender=owners[0])
+    assert sack.head == msg.hash
 
     assert receipt.events == [
         sack.contract.SignersRotated(
