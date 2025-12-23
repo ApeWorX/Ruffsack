@@ -4,6 +4,7 @@ import pytest
 from packaging.version import Version
 from ruffsack import Factory
 from ruffsack.packages import MANIFESTS, PackageType
+from ruffsack.queue import QueueManager
 
 if TYPE_CHECKING:
     from ape.api import AccountAPI
@@ -82,7 +83,10 @@ def new_sack(deployer, factory, create_release):
         if not factory.get_release(version):
             create_release(version, deployer)
 
-        return factory.new(owners, threshold, version=version, **txn_args)
+        sack = factory.new(owners, threshold, version=version, **txn_args)
+        # NOTE: Make sure to use empty queue for testing
+        sack.queue = QueueManager()
+        return sack
 
     return new_sack
 
@@ -90,8 +94,3 @@ def new_sack(deployer, factory, create_release):
 @pytest.fixture(scope="session")
 def sack(VERSION, owners, THRESHOLD, new_sack):
     return new_sack(owners, THRESHOLD, version=VERSION, sender=owners[0])
-
-
-@pytest.fixture(params=["onchain", "offchain"])
-def approval_flow(request):
-    return request.param

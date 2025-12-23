@@ -2,13 +2,13 @@ from typing import TYPE_CHECKING, Any
 
 from ape.types import AddressType
 from ape.utils import ManagerAccessMixin
+from eth_pydantic_types.hex.bytes import HexBytes
 
 from .messages import ActionType
 
 if TYPE_CHECKING:
     from collections.abc import Iterator
 
-    from ape.api import ReceiptAPI
     from ape.contracts import ContractInstance
 
     from .main import Ruffsack
@@ -45,44 +45,26 @@ class ModuleManager(ManagerAccessMixin):
             address
         )
 
-    def enable(self, module: Any, **txn_args) -> "ReceiptAPI | None":
-        if (
-            receipt := self.sack.modify(
-                ActionType.CONFIGURE_MODULE(
-                    self.head,
-                    module := self.conversion_manager.convert(module, AddressType),
-                    True,
-                    version=self.version,
-                    address=self.address,
-                    chain_id=self.chain_manager.chain_id,
-                ),
-                **txn_args,
+    def enable(self, module: Any, parent: HexBytes | None = None):
+        self.sack.modify(
+            ActionType.CONFIGURE_MODULE(
+                module := self.conversion_manager.convert(module, AddressType),
+                True,
+                version=self.version,
+                address=self.address,
+                chain_id=self.chain_manager.chain_id,
+                parent=parent or self.head,
             )
-        ) and (
-            self.sack.contract.ModuleUpdated(module=module, enabled=True)
-            in receipt.events
-        ):
-            self._cached_modules.add(self.chain_manager.contracts.instance_at(module))
+        )
 
-        return receipt
-
-    def disable(self, module: Any, **txn_args) -> "ReceiptAPI | None":
-        if (
-            receipt := self.sack.modify(
-                ActionType.CONFIGURE_MODULE(
-                    self.head,
-                    module := self.conversion_manager.convert(module, AddressType),
-                    False,
-                    version=self.version,
-                    address=self.address,
-                    chain_id=self.chain_manager.chain_id,
-                ),
-                **txn_args,
+    def disable(self, module: Any, parent: HexBytes | None = None):
+        self.sack.modify(
+            ActionType.CONFIGURE_MODULE(
+                module := self.conversion_manager.convert(module, AddressType),
+                False,
+                version=self.version,
+                address=self.address,
+                chain_id=self.chain_manager.chain_id,
+                parent=parent or self.head,
             )
-        ) and (
-            self.sack.contract.ModuleUpdated(module=module, enabled=False)
-            in receipt.events
-        ):
-            self._cached_modules.remove(module)
-
-        return receipt
+        )

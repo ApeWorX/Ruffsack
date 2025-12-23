@@ -72,6 +72,7 @@ class Factory(ManagerAccessMixin):
 
         receipt = self.contract.new(*args, **txn_args)
 
-        return Ruffsack(
-            address=receipt.events[0].new_sack, version=version, factory=self
-        )
+        if len(events := self.contract.NewRuffsack.from_receipt(receipt)) != 1:
+            raise RuntimeError(f"No deployment detected in '{receipt.txn_hash}'")
+
+        return Ruffsack(address=events[0].new_sack, version=version, factory=self)

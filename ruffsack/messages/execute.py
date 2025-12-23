@@ -12,13 +12,18 @@ if TYPE_CHECKING:
     from ape.api import ReceiptAPI
     from ape.types import AddressType
     from packaging.version import Version
-    from ruffsack.main import Ruffsack
+
+    from ..main import Ruffsack
+    from ..queue import QueueItem
 
 
 class Call(BaseModel):
     target: abi.address
     value: abi.uint256
     data: HexBytes
+
+    def render(self) -> str:
+        return f"{self.target}({self.data}, value={self.value})"
 
 
 class Execute(EIP712Message, ManagerAccessMixin):
@@ -33,6 +38,15 @@ class Execute(EIP712Message, ManagerAccessMixin):
     @property
     def hash(self) -> HexBytes32:
         return hash_message(self)
+
+    def render(self) -> dict:
+        if self.calls:
+            return {
+                "Action": "Execute",
+                "Calls": [call.render() for call in self.calls],
+            }
+
+        return {"Action": "No-op"}
 
     @classmethod
     def new(
@@ -96,7 +110,7 @@ class Execute(EIP712Message, ManagerAccessMixin):
         with (
             self.chain_manager.isolate()
             if self.provider.network.is_local
-            else self.chain_manager.fork()
+            else self.network_manager.fork()
         ):
             with self.account_manager.use_sender(self._sack.address) as sack_account:
                 starting_nonce = sack_account.nonce
@@ -105,10 +119,16 @@ class Execute(EIP712Message, ManagerAccessMixin):
             for txn in sack_account.history[starting_nonce:]:
                 self.add_from_receipt(txn)
 
+    def stage(self, sack: "Ruffsack | None" = None) -> "QueueItem":
+        if not (sack or (sack := self._sack)):
+            raise RuntimeError("Must provider `sack=` to execute")
+
+        return sack.stage(self)
+
     def __call__(
         self, sack: "Ruffsack | None" = None, **txn_args
     ) -> "ReceiptAPI | None":
         if not (sack or (sack := self._sack)):
             raise RuntimeError("Must provider `sack=` to execute")
 
-        return sack.execute(self, **txn_args)
+        return sack.commit(self, **txn_args)

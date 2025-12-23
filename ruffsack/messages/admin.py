@@ -2,7 +2,7 @@ from enum import Flag
 from typing import TYPE_CHECKING
 
 from eip712 import EIP712Message, EIP712Domain, hash_message
-from eth_abi import encode as abi_encode
+from eth_abi import encode as abi_encode, decode as abi_decode
 from eth_pydantic_types import abi, HexBytes
 from eth_pydantic_types.hex.bytes import HexBytes32
 
@@ -21,6 +21,19 @@ class Modify(EIP712Message):
     @property
     def hash(self) -> HexBytes32:
         return hash_message(self)
+
+    def render(self) -> dict:
+        t = ActionType(self.action)
+        data = {"Action": t.name.replace("_", " ").capitalize()}
+        data.update(
+            dict(
+                zip(
+                    TYPES[t].keys(),
+                    abi_decode(tuple(TYPES[t].values()), self.data),
+                )
+            )
+        )
+        return data
 
 
 class ActionType(Flag):
@@ -48,22 +61,25 @@ class ActionType(Flag):
             chainId=chain_id or sack.provider.chain_id,
         )
 
-        arg_types: tuple[str, ...]
-        match self:
-            case ActionType.UPGRADE_IMPLEMENTATION:
-                arg_types = ("address",)
-            case ActionType.ROTATE_SIGNERS:
-                arg_types = ("address[]", "address[]", "uint256")
-            case ActionType.CONFIGURE_MODULE:
-                arg_types = ("address", "bool")
-            case ActionType.SET_ADMIN_GUARD:
-                arg_types = ("address",)
-            case ActionType.SET_EXECUTE_GUARD:
-                arg_types = ("address",)
-
         return Modify(
             parent=parent or sack.head,
             action=self.value,
-            data=abi_encode(arg_types, args),
+            data=abi_encode(tuple(TYPES[self].values()), args),
             eip712_domain=eip712_domain,
         )
+
+
+TYPES: dict[ActionType, dict[str, str]] = {
+    ActionType.UPGRADE_IMPLEMENTATION: {"New Implementation": "address"},
+    ActionType.ROTATE_SIGNERS: {
+        "Signers to Add": "address[]",
+        "Signers to Remove": "address[]",
+        "Threshold": "uint256",
+    },
+    ActionType.CONFIGURE_MODULE: {
+        "Module": "address",
+        "Enabled": "bool",
+    },
+    ActionType.SET_ADMIN_GUARD: {"New Admin Guard": "address"},
+    ActionType.SET_EXECUTE_GUARD: {"New Execute Guard": "address"},
+}
