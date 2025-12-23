@@ -112,6 +112,20 @@ class Execute(EIP712Message, ManagerAccessMixin):
             data=call.encode_input(*args),
         )
 
+    def add_transfer(
+        self,
+        target: "BaseAddress | AddressType | str",
+        value: int | str,
+        data: bytes = b"",
+        success_required: bool = True,
+    ):
+        return self.add_raw(
+            target=target,
+            value=value,
+            success_required=success_required,
+            data=data,  # In case you want to add a message or something
+        )
+
     def add_from_receipt(
         self, receipt: "ReceiptAPI", success_required: bool = True
     ) -> Self:
