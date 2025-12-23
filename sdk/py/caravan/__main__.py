@@ -83,19 +83,19 @@ def new_wallet(network, version, threshold, tag, signers, account):
         raise click.UsageError("Cannot use a value higher than number of signers")
 
     factory = Factory()
-    sack = factory.new(
+    van = factory.new(
         signers,
         threshold=threshold,
         version=version,
         tag=tag,
         sender=account,
     )
-    click.secho(f"CaravanProxy deployed: {sack.address}", fg="green")
+    click.secho(f"CaravanProxy deployed: {van.address}", fg="green")
 
     if network.is_local:
         return  # NOTE: Do not track emphemeral wallets
 
-    elif (wallet_file := USER_CONFIG_DIR / f"{sack.address}.json").exists():
+    elif (wallet_file := USER_CONFIG_DIR / f"{van.address}.json").exists():
         chain_ids = json.loads(wallet_file.read_text())
         chain_ids.append(network.chain_id)
         wallet_file.write_text(json.dumps(sorted(chain_ids)))

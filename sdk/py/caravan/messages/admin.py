@@ -51,18 +51,18 @@ class ActionType(Flag):
         address: "AddressType | None" = None,
         chain_id: int | None = None,
         parent: bytes | None = None,
-        sack: "Caravan | None" = None,
+        van: "Caravan | None" = None,
     ) -> Modify:
-        assert sack or all((version, address, chain_id, parent))
+        assert van or all((version, address, chain_id, parent))
         eip712_domain = EIP712Domain(
             name="Caravan Wallet",
-            verifyingContract=address or sack.address,
-            version=str(version or sack.version),
-            chainId=chain_id or sack.provider.chain_id,
+            verifyingContract=address or van.address,
+            version=str(version or van.version),
+            chainId=chain_id or van.provider.chain_id,
         )
 
         return Modify(
-            parent=parent or sack.head,
+            parent=parent or van.head,
             action=self.value,
             data=abi_encode(tuple(TYPES[self].values()), args),
             eip712_domain=eip712_domain,

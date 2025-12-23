@@ -17,7 +17,7 @@ event NewCaravan:
     tag: String[64]
     signers: DynArray[address, 11]
     threshold: uint256
-    new_sack: address
+    new_proxy: address
 
 
 @deploy
@@ -40,7 +40,7 @@ def new(
         )
     )
 
-    new_sack: address = raw_create(
+    new_proxy: address = raw_create(
         PROXY_INITCODE,
         release.address,
         signers,
@@ -55,7 +55,7 @@ def new(
         tag=tag,
         signers=signers,
         threshold=threshold,
-        new_sack=new_sack,
+        new_proxy=new_proxy,
     )
 
-    return new_sack
+    return new_proxy

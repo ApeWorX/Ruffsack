@@ -2,54 +2,54 @@ from packaging.version import Version
 from caravan.messages import ActionType
 
 
-def test_upgrade(VERSION, owners, create_release, singleton, sack):
+def test_upgrade(VERSION, owners, create_release, singleton, van):
     new_version = Version(f"{VERSION}+post.0")
     new_impl = create_release(version=new_version)
 
-    msg = ActionType.UPGRADE_IMPLEMENTATION(new_impl.address, sack=sack)
-    assert sack.head == msg.parent
-    assert msg not in sack.queue
+    msg = ActionType.UPGRADE_IMPLEMENTATION(new_impl.address, van=van)
+    assert van.head == msg.parent
+    assert msg not in van.queue
 
-    sack.stage(msg)
-    assert msg in sack.queue
+    van.stage(msg)
+    assert msg in van.queue
 
-    receipt = sack.commit(msg, sender=owners[0])
-    assert sack.head == msg.hash
+    receipt = van.commit(msg, sender=owners[0])
+    assert van.head == msg.hash
 
     assert receipt.events == [
-        sack.contract.ImplementationUpgraded(
+        van.contract.ImplementationUpgraded(
             executor=owners[0],
             old=singleton,
             new=new_impl,
         ),
     ]
-    assert sack.contract.IMPLEMENTATION() == new_impl
+    assert van.contract.IMPLEMENTATION() == new_impl
 
 
-def test_rotate_signers(accounts, owners, sack):
+def test_rotate_signers(accounts, owners, van):
     msg = ActionType.ROTATE_SIGNERS(
         [accounts[len(owners)].address],
         [owners[0].address],
-        sack.threshold,
-        sack=sack,
+        van.threshold,
+        van=van,
     )
-    assert sack.head == msg.parent
-    assert msg not in sack.queue
+    assert van.head == msg.parent
+    assert msg not in van.queue
 
-    sack.stage(msg)
-    assert msg in sack.queue
+    van.stage(msg)
+    assert msg in van.queue
 
-    receipt = sack.commit(msg, sender=owners[0])
-    assert sack.head == msg.hash
+    receipt = van.commit(msg, sender=owners[0])
+    assert van.head == msg.hash
 
     assert receipt.events == [
-        sack.contract.SignersRotated(
+        van.contract.SignersRotated(
             executor=owners[0],
             num_signers=len(owners),
-            threshold=sack.threshold,
+            threshold=van.threshold,
             signers_added=[accounts[len(owners)]],
             signers_removed=[owners[0]],
         ),
     ]
-    assert sack.signers[0] == accounts[1]
-    assert sack.signers[len(owners) - 1] == accounts[len(owners)]
+    assert van.signers[0] == accounts[1]
+    assert van.signers[len(owners) - 1] == accounts[len(owners)]

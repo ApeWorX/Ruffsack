@@ -15,14 +15,14 @@ if TYPE_CHECKING:
 
 
 class ModuleManager(ManagerAccessMixin):
-    def __init__(self, sack: "Caravan"):
-        self.sack = sack
+    def __init__(self, van: "Caravan"):
+        self.van = van
 
         self._cached_modules: set["ContractInstance"] = set()
         self._last_cached: int = 0
 
     def _update_cache(self):
-        for log in self.sack.contract.ModuleUpdated.range(
+        for log in self.van.contract.ModuleUpdated.range(
             self._last_cached,
             last_block := self.chain_manager.blocks.head.number,
         ):
@@ -41,12 +41,12 @@ class ModuleManager(ManagerAccessMixin):
         return iter(self._cached_modules)
 
     def __contains__(self, address: Any) -> bool:
-        return address in self._cached_modules or self.sack.contract.module_enabled(
+        return address in self._cached_modules or self.van.contract.module_enabled(
             address
         )
 
     def enable(self, module: Any, parent: HexBytes | None = None):
-        self.sack.modify(
+        self.van.modify(
             ActionType.CONFIGURE_MODULE(
                 module := self.conversion_manager.convert(module, AddressType),
                 True,
@@ -58,7 +58,7 @@ class ModuleManager(ManagerAccessMixin):
         )
 
     def disable(self, module: Any, parent: HexBytes | None = None):
-        self.sack.modify(
+        self.van.modify(
             ActionType.CONFIGURE_MODULE(
                 module := self.conversion_manager.convert(module, AddressType),
                 False,

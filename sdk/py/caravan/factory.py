@@ -76,13 +76,13 @@ class Factory(ManagerAccessMixin):
         if len(events := self.contract.NewCaravan.from_receipt(receipt)) != 1:
             raise RuntimeError(f"No deployment detected in '{receipt.txn_hash}'")
 
-        new_sack = Caravan(address=events[0].new_sack, version=version, factory=self)
+        proxy = Caravan(address=events[0].new_proxy, version=version, factory=self)
 
         if self.provider.network.explorer:
             try:
-                self.provider.network.explorer.publish_contract(new_sack.contract)
+                self.provider.network.explorer.publish_contract(proxy.contract)
 
             except Exception as e:
-                logger.warn_from_exception(e, f"Error verifying {new_sack.contract}")
+                logger.warn_from_exception(e, f"Error verifying {proxy.contract}")
 
-        return new_sack
+        return proxy

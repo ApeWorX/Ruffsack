@@ -33,7 +33,7 @@ class Execute(EIP712Message, ManagerAccessMixin):
     parent: abi.bytes32
     calls: list[Call] = []
 
-    _sack: "Caravan | None" = PrivateAttr(default=None)
+    _van: "Caravan | None" = PrivateAttr(default=None)
 
     @property
     def hash(self) -> HexBytes32:
@@ -51,24 +51,24 @@ class Execute(EIP712Message, ManagerAccessMixin):
     @classmethod
     def new(
         cls,
-        sack: "Caravan | None" = None,
+        van: "Caravan | None" = None,
         parent: abi.bytes32 | None = None,
         version: "Version | None" = None,
         address: "AddressType | None" = None,
         chain_id: int | None = None,
     ):
-        if not ((parent and version and address) or sack):
-            raise ValueError("Must provide either `sack=` or the remaining kwargs.")
+        if not ((parent and version and address) or van):
+            raise ValueError("Must provide either `van=` or the remaining kwargs.")
 
         eip712_domain = EIP712Domain(
             name="Caravan Wallet",
-            verifyingContract=address or sack.address,
-            version=str(version) if version else str(sack.version),
+            verifyingContract=address or van.address,
+            version=str(version) if version else str(van.version),
             chainId=chain_id or cls.chain_manager.chain_id,
         )
 
-        self = cls(parent=parent or sack.head, eip712_domain=eip712_domain)
-        self._sack = sack  # NOTE: Set private variable
+        self = cls(parent=parent or van.head, eip712_domain=eip712_domain)
+        self._van = van  # NOTE: Set private variable
         return self
 
     def add_raw(
@@ -104,7 +104,7 @@ class Execute(EIP712Message, ManagerAccessMixin):
 
     @contextmanager
     def add_from_simulation(self) -> Generator[ImpersonatedAccount, None, None]:
-        if not self._sack:
+        if not self._van:
             raise RuntimeError("Only use simulations with an 'attached' batch instance")
 
         with (
@@ -112,23 +112,21 @@ class Execute(EIP712Message, ManagerAccessMixin):
             if self.provider.network.is_local
             else self.network_manager.fork()
         ):
-            with self.account_manager.use_sender(self._sack.address) as sack_account:
-                starting_nonce = sack_account.nonce
-                yield sack_account
+            with self.account_manager.use_sender(self._van.address) as van_account:
+                starting_nonce = van_account.nonce
+                yield van_account
 
-            for txn in sack_account.history[starting_nonce:]:
+            for txn in van_account.history[starting_nonce:]:
                 self.add_from_receipt(txn)
 
-    def stage(self, sack: "Caravan | None" = None) -> "QueueItem":
-        if not (sack or (sack := self._sack)):
-            raise RuntimeError("Must provider `sack=` to execute")
+    def stage(self, van: "Caravan | None" = None) -> "QueueItem":
+        if not (van or (van := self._van)):
+            raise RuntimeError("Must provider `van=` to execute")
 
-        return sack.stage(self)
+        return van.stage(self)
 
-    def __call__(
-        self, sack: "Caravan | None" = None, **txn_args
-    ) -> "ReceiptAPI | None":
-        if not (sack or (sack := self._sack)):
-            raise RuntimeError("Must provider `sack=` to execute")
+    def __call__(self, van: "Caravan | None" = None, **txn_args) -> "ReceiptAPI | None":
+        if not (van or (van := self._van)):
+            raise RuntimeError("Must provider `van=` to execute")
 
-        return sack.commit(self, **txn_args)
+        return van.commit(self, **txn_args)
