@@ -116,12 +116,12 @@ class Ruffsack(ManagerAccessMixin):
         self, msg: "EIP712Message", needed: int | None = None
     ) -> list[MessageSignature]:
         if needed is None:
-            needed = self.threshold - self.onchain_approvals(msg._message_hash_)
+            needed = self.threshold - self.onchain_approvals(msg.hash)
 
         signatures = []
 
         if self.client:
-            signatures.extend(self.client.get_signatures(msg._message_hash_))
+            signatures.extend(self.client.get_signatures(msg.hash))
 
         for signer in self.local_signers:
             if len(signatures) >= needed:
@@ -141,7 +141,7 @@ class Ruffsack(ManagerAccessMixin):
 
         # TODO: Support `impersonate=True`
 
-        needed = self.threshold - self.onchain_approvals(msg._message_hash_)
+        needed = self.threshold - self.onchain_approvals(msg.hash)
         if needed == 0 and submit:
             return self.contract.modify(msg.action, msg.data, **txn_args)
 
@@ -292,25 +292,23 @@ class Ruffsack(ManagerAccessMixin):
         self.set_execute_guard()
 
     def new_batch(self, parent: HexBytes | None = None) -> Execute:
-        return Execute(sack=self, parent=parent)
+        return Execute.new(sack=self, parent=parent)
 
     def execute(
         self, execution: Execute, submit: bool = True, **txn_args
     ) -> "ReceiptAPI | None":
-        if submit and execution.message.parent != self.head:
+        if submit and execution.parent != self.head:
             raise RuntimeError("Cannot execute call, wrong head")
 
         # TODO: Support `impersonate=True`
-        needed = self.threshold - self.onchain_approvals(
-            execution.message._message_hash_
-        )
+        needed = self.threshold - self.onchain_approvals(execution.hash)
         if needed == 0 and submit:
-            return self.contract.execute(execution.message.calls, **txn_args)
+            return self.contract.execute(execution.calls, **txn_args)
 
-        signatures = self.get_signatures(execution.message, needed=needed)
+        signatures = self.get_signatures(execution, needed=needed)
         if (len(signatures) >= needed) and submit:
             return self.contract.execute(
-                execution.message.calls,
+                execution.calls,
                 [sig.encode_rsv() for sig in signatures],
                 **txn_args,
             )
@@ -322,6 +320,6 @@ class Ruffsack(ManagerAccessMixin):
 
         elif self.client:
             # TODO: Add logging
-            self.client.submit_signatures(execution.message, signatures)
+            self.client.submit_signatures(execution, signatures)
 
         return None

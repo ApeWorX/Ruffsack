@@ -1,11 +1,12 @@
 from collections.abc import Generator
 from contextlib import contextmanager
-from typing import TYPE_CHECKING, Self
+from typing import TYPE_CHECKING, ClassVar, Self
 
 from ape.api.accounts import ImpersonatedAccount
-from ape.types import HexBytes
 from ape.utils import ManagerAccessMixin
-from eip712 import EIP712Message, EIP712Type
+from eip712 import EIP712Domain, EIP712Message, hash_message
+from eth_pydantic_types import HexBytes, HexBytes32, abi
+from pydantic import BaseModel, PrivateAttr
 
 if TYPE_CHECKING:
     from ape.api import ReceiptAPI
@@ -14,53 +15,52 @@ if TYPE_CHECKING:
     from ruffsack.main import Ruffsack
 
 
-class Call(EIP712Type):
-    target: "address"  # type: ignore[name-defined]  # noqa: F821
-    value: "uint256"  # type: ignore[name-defined]  # noqa: F821
-    data: "bytes"
+class Call(BaseModel):
+    target: abi.address
+    value: abi.uint256
+    data: HexBytes
 
 
-class ExecuteBase(EIP712Message):
-    _name_ = "Ruffsack Wallet"
+class Execute(EIP712Message, ManagerAccessMixin):
+    MAX_CALLS: ClassVar[int] = 8
+    MAX_CALLDATA_SIZE: ClassVar[int] = 16_388
 
-    parent: "bytes32"  # type: ignore[name-defined]  # noqa: F821
+    parent: abi.bytes32
     calls: list[Call] = []
 
+    _sack: "Ruffsack | None" = PrivateAttr(default=None)
 
-class Execute(ManagerAccessMixin):
-    MAX_CALLS = 8
-    MAX_CALLDATA_SIZE = 16_388
+    @property
+    def hash(self) -> HexBytes32:
+        return hash_message(self)
 
-    def __init__(
-        self,
+    @classmethod
+    def new(
+        cls,
         sack: "Ruffsack | None" = None,
-        parent: HexBytes | None = None,
+        parent: abi.bytes32 | None = None,
         version: "Version | None" = None,
         address: "AddressType | None" = None,
         chain_id: int | None = None,
     ):
-        self.sack = sack
+        if not ((parent and version and address) or sack):
+            raise ValueError("Must provide either `sack=` or the remaining kwargs.")
 
-        if not chain_id:
-            chain_id = self.chain_manager.chain_id
+        eip712_domain = EIP712Domain(
+            name="Ruffsack Wallet",
+            verifyingContract=address or sack.address,
+            version=str(version) if version else str(sack.version),
+            chainId=chain_id or cls.chain_manager.chain_id,
+        )
 
-        if not (parent and version and address):
-            if not sack:
-                raise ValueError("Must provide either `sack=` or the remaining kwargs.")
+        self = cls(parent=parent or sack.head, eip712_domain=eip712_domain)
+        self._sack = sack  # NOTE: Set private variable
+        return self
 
-            parent = sack.head
-            version = sack.version
-            address = sack.address
-
-        class Execute(ExecuteBase):
-            _verifyingContract_ = address
-            _version_ = str(version)
-            _chainId_ = chain_id
-
-        self.message = Execute(parent=parent)
-
-    def add_raw(self, target: "AddressType", value: int = 0, data: bytes = b"") -> Self:
-        if len(self.message.calls) >= self.MAX_CALLS:
+    def add_raw(
+        self, target: "AddressType", value: int = 0, data: HexBytes = b""
+    ) -> Self:
+        if len(self.calls) >= self.MAX_CALLS:
             raise RuntimeError(
                 "Ruffsack does not support more than 8 calls per execute transaction."
             )
@@ -71,7 +71,7 @@ class Execute(ManagerAccessMixin):
                 f" {self.MAX_CALLDATA_SIZE} bytes."
             )
 
-        self.message.calls.append(Call(target=target, value=value, data=data))
+        self.calls.append(Call(target=target, value=value, data=data))
         return self
 
     def add(self, call, *args, value: int = 0) -> Self:
@@ -90,7 +90,7 @@ class Execute(ManagerAccessMixin):
 
     @contextmanager
     def add_from_simulation(self) -> Generator[ImpersonatedAccount, None, None]:
-        if not self.sack:
+        if not self._sack:
             raise RuntimeError("Only use simulations with an 'attached' batch instance")
 
         with (
@@ -98,7 +98,7 @@ class Execute(ManagerAccessMixin):
             if self.provider.network.is_local
             else self.chain_manager.fork()
         ):
-            with self.account_manager.use_sender(self.sack.address) as sack_account:
+            with self.account_manager.use_sender(self._sack.address) as sack_account:
                 starting_nonce = sack_account.nonce
                 yield sack_account
 
@@ -108,7 +108,7 @@ class Execute(ManagerAccessMixin):
     def __call__(
         self, sack: "Ruffsack | None" = None, **txn_args
     ) -> "ReceiptAPI | None":
-        if not (sack or (sack := self.sack)):
+        if not (sack or (sack := self._sack)):
             raise RuntimeError("Must provider `sack=` to execute")
 
         return sack.execute(self, **txn_args)

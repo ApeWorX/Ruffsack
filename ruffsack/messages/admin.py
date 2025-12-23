@@ -1,8 +1,10 @@
 from enum import Flag
 from typing import TYPE_CHECKING
 
-from eip712 import EIP712Message
+from eip712 import EIP712Message, EIP712Domain, hash_message
 from eth_abi import encode as abi_encode
+from eth_pydantic_types import abi, HexBytes
+from eth_pydantic_types.hex.bytes import HexBytes32
 
 if TYPE_CHECKING:
     from ape.types.address import AddressType
@@ -11,11 +13,14 @@ if TYPE_CHECKING:
     from .main import Ruffsack
 
 
-class ModifyBase(EIP712Message):
-    _name_ = "Ruffsack Wallet"
-    parent: "bytes32"  # type: ignore[name-defined]  # noqa: F821
-    action: "uint256"  # type: ignore[name-defined]  # noqa: F821
-    data: "bytes"
+class Modify(EIP712Message):
+    parent: abi.bytes32  # type: ignore[name-defined]  # noqa: F821
+    action: abi.uint256  # type: ignore[name-defined]  # noqa: F821
+    data: HexBytes
+
+    @property
+    def hash(self) -> HexBytes32:
+        return hash_message(self)
 
 
 class ActionType(Flag):
@@ -34,13 +39,14 @@ class ActionType(Flag):
         chain_id: int | None = None,
         parent: bytes | None = None,
         sack: "Ruffsack | None" = None,
-    ) -> ModifyBase:
+    ) -> Modify:
         assert sack or all((version, address, chain_id, parent))
-
-        class Modify(ModifyBase):
-            _verifyingContract_ = address or sack.address
-            _version_ = str(version or sack.version)
-            _chainId_ = chain_id or sack.provider.chain_id
+        eip712_domain = EIP712Domain(
+            name="Ruffsack Wallet",
+            verifyingContract=address or sack.address,
+            version=str(version or sack.version),
+            chainId=chain_id or sack.provider.chain_id,
+        )
 
         arg_types: tuple[str, ...]
         match self:
@@ -55,8 +61,9 @@ class ActionType(Flag):
             case ActionType.SET_EXECUTE_GUARD:
                 arg_types = ("address",)
 
-        return Modify(  # type: ignore[call-arg]
+        return Modify(
             parent=parent or sack.head,
             action=self.value,
             data=abi_encode(arg_types, args),
+            eip712_domain=eip712_domain,
         )

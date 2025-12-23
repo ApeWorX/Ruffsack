@@ -6,7 +6,7 @@ from ruffsack.messages import Execute
 
 def test_size_limits():
     # NOTE: Use `Execute` directly to avoid parametrized fixture setup
-    txn = Execute(
+    txn = Execute.new(
         parent=b"\x00" * 32,
         version=Version("0.1"),
         address=ZERO_ADDRESS,

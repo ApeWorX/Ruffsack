@@ -12,10 +12,10 @@ def test_upgrade(
         msg = ActionType.UPGRADE_IMPLEMENTATION(new_impl.address, sack=sack)
 
         for owner in owners[:THRESHOLD]:
-            sack.contract.set_approval(msg._message_hash_, sender=owner)
+            sack.contract.set_approval(msg.hash, sender=owner)
 
         receipt = sack.modify(msg, sender=owners[0])
-        assert sack.head == msg._message_hash_
+        assert sack.head == msg.hash
 
     else:
         receipt = sack.migrate(new_version=new_version, sender=owners[0])
@@ -42,10 +42,10 @@ def test_rotate_signers(
         )
 
         for owner in owners[:THRESHOLD]:
-            sack.contract.set_approval(msg._message_hash_, sender=owner)
+            sack.contract.set_approval(msg.hash, sender=owner)
 
         receipt = sack.modify(msg, sender=owners[0])
-        assert sack.head == msg._message_hash_
+        assert sack.head == msg.hash
 
     else:
         receipt = sack.rotate_signers(
