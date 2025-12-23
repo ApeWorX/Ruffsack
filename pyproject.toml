@@ -21,6 +21,7 @@ test = [
     "ape-vyper>=0.8.9",
 ]
 dev = [
+    "ape-etherscan>=0.8.5",
     {include-group = "test"},
 ]
 
