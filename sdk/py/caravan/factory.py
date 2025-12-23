@@ -18,7 +18,11 @@ class Factory(ManagerAccessMixin):
             self.address = address
 
         elif len((factory_type := PackageType.FACTORY()).deployments) == 0:
-            raise RuntimeError("No CaravanFactory deployment on this chain")
+            # NOTE: This is the deterministic deployment address via CreateX
+            self.address = "0x04579FFC45fE10A7901B88EaEc8F4850b847D37c"
+
+            if not len(self.provider.get_code(self.address)) > 0:
+                raise RuntimeError("No CaravanFactory deployment on this chain")
 
         else:
             # NOTE: Override cached value of `contract`
@@ -26,9 +30,12 @@ class Factory(ManagerAccessMixin):
             self.address = self.contract.address
 
         # NOTE: also lets us override for testing
-        self._cached_releases: dict[Version, "ContractInstance"] = dict()
-
-    # TODO: classmethod `.inject`?
+        self._cached_releases: dict[Version, "ContractInstance"] = {
+            # NOTE: This is the deterministic deployment address for v1 via CreateX
+            Version("1"): PackageType.SINGLETON("1").at(
+                "0xf7AC37e8A31Da4D2Fbe7687118c142dd46e63517"
+            ),
+        }
 
     @cached_property
     def contract(self) -> "ContractInstance":
@@ -39,13 +46,13 @@ class Factory(ManagerAccessMixin):
         )
 
     def get_release(self, version: Version) -> "ContractInstance | None":
-        if release := self._cached_releases.get(version):
+        if (release := self._cached_releases.get(version)) and len(release.code) > 0:
             return release
 
         elif not (singleton_type := PackageType.SINGLETON(version)).deployments:
             return None
 
-        elif not (release := singleton_type.deployments[-1]).code:
+        elif not len((release := singleton_type.deployments[-1]).code) > 0:
             return None
 
         self._cached_releases[version] = release
@@ -65,7 +72,8 @@ class Factory(ManagerAccessMixin):
         if isinstance(version, str):
             version = Version(version.lstrip("v"))
 
-        release = self.get_release(version)
+        if not (release := self.get_release(version)):
+            raise RuntimeError("No Caravan Singleton deployment on this chain")
 
         args = [release, signers, threshold]
         if tag is not None:

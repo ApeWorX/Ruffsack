@@ -47,17 +47,3 @@ name = "foundry"
 name = "solidity"
 [[tool.ape.plugins]]
 name = "vyper"
-
-# Factory
-#[[tool.ape.deployments.ethereum.deterministic]]
-[[tool.ape.deployments.ethereum.local]]
-address = "0x04579FFC45fE10A7901B88EaEc8F4850b847D37c"
-contract_type = "CaravanFactory"
-
-# Singleton
-# NOTE: Update latest Singleton when contract code changes
-# v1 (Latest)
-#[[tool.ape.deployments.ethereum.deterministic]]
-[[tool.ape.deployments.ethereum.local]]
-address = "0xf7AC37e8A31Da4D2Fbe7687118c142dd46e63517"
-contract_type = "Caravan"
