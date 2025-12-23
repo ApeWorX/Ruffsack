@@ -2,6 +2,7 @@
 struct Call:
     target: address
     value: uint256
+    success_required: bool
     # TODO: Increase size to 65540 once Vyper improves memory allocation (gas costs too high)
     data: Bytes[16388]
 
