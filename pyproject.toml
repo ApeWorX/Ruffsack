@@ -49,7 +49,7 @@ name = "vyper"
 # Factory
 #[[tool.ape.deployments.ethereum.deterministic]]
 [[tool.ape.deployments.ethereum.local]]
-address = "0x4862bF0d25F19E72e40E0Fd7E90ce4836bEd4A2c"
+address = "0xAD2473EF637110a6189A07e5284f695E072F8C96"
 contract_type = "CaravanFactory"
 
 # Singleton
@@ -57,5 +57,5 @@ contract_type = "CaravanFactory"
 # v1 (Latest)
 #[[tool.ape.deployments.ethereum.deterministic]]
 [[tool.ape.deployments.ethereum.local]]
-address = "0xb5c126f2c2023c6af7FD71941fF24feCfAEdC085"
+address = "0x685B0DEA9daF4DC73Ab9dba4bc4156d90A7F8a5d"
 contract_type = "Caravan"
