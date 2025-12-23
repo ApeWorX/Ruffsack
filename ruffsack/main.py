@@ -66,6 +66,10 @@ class Ruffsack(ManagerAccessMixin):
 
     @cached_property
     def contract(self) -> ContractInstance:
+        proxy_code = PackageType.PROXY().contract_type.get_runtime_bytecode()
+        if self.provider.get_code(self.address) != proxy_code:
+            raise RuntimeError(f"{self.address} is not a RuffsackProxy")
+
         return PackageType.SINGLETON(self.version).at(
             self.address,
             fetch_from_explorer=False,
