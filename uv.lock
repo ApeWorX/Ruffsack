@@ -308,10 +308,11 @@ wheels = [
 
 [[package]]
 name = "caravan-py"
-version = "0.2.1"
+version = "0.2.2"
 source = { editable = "." }
 dependencies = [
     { name = "createx" },
+    { name = "eip712" },
     { name = "eth-ape" },
 ]
 
@@ -330,6 +331,7 @@ test = [
 [package.metadata]
 requires-dist = [
     { name = "createx", specifier = ">=0.1.1" },
+    { name = "eip712", specifier = ">=0.3.3" },
     { name = "eth-ape", specifier = ">=0.8.43" },
 ]
 
@@ -742,7 +744,7 @@ wheels = [
 
 [[package]]
 name = "eip712"
-version = "0.3.1"
+version = "0.3.3"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "eth-account" },
@@ -750,9 +752,9 @@ dependencies = [
     { name = "eth-utils" },
     { name = "pydantic" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/6c/4f/61e8af9b9ada3c6d2a87c6d33bd59fbd500d9b1ae0bcb674bf9947a5a34a/eip712-0.3.1.tar.gz", hash = "sha256:50b253165e8c18a73ba0033b8c00c5de75eaeec75bc0523a294ea75ed1fb5801", size = 61201, upload-time = "2025-12-23T04:23:51.527Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/25/f7/04f45a50f4539dc259a6c45343861ba99c75c3d401b72d20b6350f5e01d8/eip712-0.3.3.tar.gz", hash = "sha256:a27a4ba832ad9e2838e779170148478f271f7f093a603dd33e2a7bbf86aae7cd", size = 61452, upload-time = "2025-12-23T16:51:37.778Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/47/48/3260dfa2d618125a49667ad9c2268d01e6db01121ffabf9fd0e2e36fea8d/eip712-0.3.1-py3-none-any.whl", hash = "sha256:323cd017e9c9082c2610198d6b9ad17acd08a5d85ab9aa5bcbf4577092aab71f", size = 11616, upload-time = "2025-12-23T04:23:50.182Z" },
+    { url = "https://files.pythonhosted.org/packages/fc/d3/56e16f54b37bf013c304c66d6cdbe9f1ba8fe7799166873721d4e3519273/eip712-0.3.3-py3-none-any.whl", hash = "sha256:45113f0d9aa85d5ef8b415957f962b58f47c5f9343998865ec831ad6c604aa21", size = 11845, upload-time = "2025-12-23T16:51:36.233Z" },
 ]
 
 [[package]]

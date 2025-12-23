@@ -10,6 +10,7 @@ readme = "README.md"
 requires-python = ">=3.11"
 dependencies = [
     "eth-ape>=0.8.43",
+    "eip712>=0.3.3",  # NOTE: Special pin needed
     "createx>=0.1.1",
 ]
 
@@ -20,6 +21,7 @@ test = [
     "ape-vyper>=0.8.9",
 ]
 dev = [
+    "ape-etherscan>=0.8.5",
     {include-group = "test"},
 ]
 
@@ -45,17 +47,3 @@ name = "foundry"
 name = "solidity"
 [[tool.ape.plugins]]
 name = "vyper"
-
-# Factory
-#[[tool.ape.deployments.ethereum.deterministic]]
-[[tool.ape.deployments.ethereum.local]]
-address = "0x04579FFC45fE10A7901B88EaEc8F4850b847D37c"
-contract_type = "CaravanFactory"
-
-# Singleton
-# NOTE: Update latest Singleton when contract code changes
-# v1 (Latest)
-#[[tool.ape.deployments.ethereum.deterministic]]
-[[tool.ape.deployments.ethereum.local]]
-address = "0x685B0DEA9daF4DC73Ab9dba4bc4156d90A7F8a5d"
-contract_type = "Caravan"

@@ -26,10 +26,10 @@ MODIFY_TYPEHASH: constant(bytes32) = keccak256(
 )
 
 CALL_TYPEHASH: constant(bytes32) = keccak256(
-    "Call(address target,uint256 value,bytes data)"
+    "Call(address target,uint256 value,bool success_required,bytes data)"
 )
 EXECUTE_TYPEHASH: constant(bytes32) = keccak256(
-    "Execute(bytes32 parent,Call[] calls)Call(address target,uint256 value,bytes data)"
+    "Execute(bytes32 parent,Call[] calls)Call(address target,uint256 value,bool success_required,bytes data)"
 )
 
 # @dev The current implementation address for `CaravanProxy`
@@ -294,6 +294,7 @@ def execute(
                         CALL_TYPEHASH,
                         call.target,
                         call.value,
+                        call.success_required,
                         # NOTE: Per EIP712, Dynamic ABI types are encoded as the hash of their contents
                         keccak256(call.data),
                     )
@@ -321,12 +322,19 @@ def execute(
             extcall guard.preExecuteCheck(call)
 
         # NOTE: No delegatecalls allowed (cannot modify configuration via `update` this way)
-        success: bool = raw_call(
-            call.target,
-            call.data,
-            value=call.value,
-            revert_on_failure=False,
-        )
+        success: bool = True
+        if call.success_required:
+            # NOTE: Allow failure to bubble up normally
+            raw_call(call.target, call.data, value=call.value)
+
+        else:
+            success = raw_call(
+                call.target,
+                call.data,
+                value=call.value,
+                revert_on_failure=False,
+            )
+
 
         if guard.address != empty(address):
             extcall guard.postExecuteCheck()
