@@ -518,7 +518,7 @@ def factory(network: "NetworkAPI", account: "AccountAPI"):
             raise click.UsageError(
                 "CreateX (https://createx.rocks) is not available on this chain."
             ) from e
-            
+
         click.echo(
             click.style("WARNING:", fg="yellow") + "  Using non-determinstic deployment"
         )
@@ -551,7 +551,7 @@ def singleton(network: "NetworkAPI", version: Version, account: "AccountAPI"):
             raise click.UsageError(
                 "CreateX (https://createx.rocks) is not available on this chain."
             ) from e
-            
+
         click.echo(
             click.style("WARNING:", fg="yellow") + "  Using non-determinstic deployment"
         )
