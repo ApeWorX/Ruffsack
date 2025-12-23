@@ -2,27 +2,27 @@ import ape
 import pytest
 
 
-def test_configuration(networks, sack, VERSION, THRESHOLD, owners):
-    assert set(sack.signers) == set(o.address for o in owners)
-    assert sack.threshold == THRESHOLD
+def test_configuration(networks, van, VERSION, THRESHOLD, owners):
+    assert set(van.signers) == set(o.address for o in owners)
+    assert van.threshold == THRESHOLD
 
-    assert sack.admin_guard is None
-    assert sack.execute_guard is None
+    assert van.admin_guard is None
+    assert van.execute_guard is None
 
     enabled, name, version, chain_id, address, salt, extensions = (
-        sack.contract.eip712Domain()
+        van.contract.eip712Domain()
     )
     assert enabled == b"\x0f"  # NOTE: all but `salt` is enabled
     assert name == "Caravan Wallet"
     assert version == str(VERSION)
     assert chain_id == networks.provider.chain_id
-    assert address == sack.address
+    assert address == van.address
     assert salt == b"\x00" * 32
     assert extensions == []
 
 
-def test_initialize(singleton, sack, THRESHOLD, owners):
-    assert sack.contract.IMPLEMENTATION() == singleton
+def test_initialize(singleton, van, THRESHOLD, owners):
+    assert van.contract.IMPLEMENTATION() == singleton
 
     with ape.reverts():  # dev_message="only Proxy can initialize"):
         # NOTE: Can't initialize singleton
@@ -30,12 +30,12 @@ def test_initialize(singleton, sack, THRESHOLD, owners):
 
     with ape.reverts():  # dev_message="can only initialize once"):
         # NOTE: Can't initialize proxy a second time
-        sack.contract.initialize(owners, THRESHOLD, sender=owners[0])
+        van.contract.initialize(owners, THRESHOLD, sender=owners[0])
 
 
 @pytest.mark.parametrize("calls", ["0_calls", "1_call", "2_calls"])
-def test_execute(accounts, sack, owners, calls):
-    msg = sack.new_batch()
+def test_execute(accounts, van, owners, calls):
+    msg = van.new_batch()
 
     for idx in range(total_calls := int(calls.split("_")[0])):
         msg.add_raw(
@@ -44,18 +44,18 @@ def test_execute(accounts, sack, owners, calls):
             data=f"{idx}".encode("utf-8"),
         )
 
-    assert sack.head == msg.parent
-    assert msg not in sack.queue
+    assert van.head == msg.parent
+    assert msg not in van.queue
 
-    sack.stage(msg)
-    assert msg in sack.queue
+    van.stage(msg)
+    assert msg in van.queue
 
-    receipt = sack.commit(msg, sender=owners[0])
-    assert sack.head == msg.hash
+    receipt = van.commit(msg, sender=owners[0])
+    assert van.head == msg.hash
 
     if total_calls > 0:
         assert receipt.events == [
-            sack.contract.Executed(
+            van.contract.Executed(
                 executor=owners[0],
                 target=account,
                 value=idx,

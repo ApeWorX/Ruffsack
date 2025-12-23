@@ -288,7 +288,7 @@ class Caravan(ManagerAccessMixin):
         return self.stage(
             ActionType.UPGRADE_IMPLEMENTATION(
                 release.address,
-                sack=self,
+                van=self,
                 parent=parent,
             ),
         )
@@ -335,7 +335,7 @@ class Caravan(ManagerAccessMixin):
                 signers_to_add,
                 signers_to_remove,
                 threshold or self.threshold,
-                sack=self,
+                van=self,
                 parent=parent,
             ),
         )
@@ -371,7 +371,7 @@ class Caravan(ManagerAccessMixin):
     ) -> "QueueItem":
         new_guard = self.conversion_manager.convert(new_guard, AddressType)
         return self.stage(
-            ActionType.SET_ADMIN_GUARD(new_guard, sack=self, parent=parent)
+            ActionType.SET_ADMIN_GUARD(new_guard, van=self, parent=parent)
         )
 
     @admin_guard.setter
@@ -396,7 +396,7 @@ class Caravan(ManagerAccessMixin):
     ) -> "QueueItem":
         new_guard = self.conversion_manager.convert(new_guard, AddressType)
         return self.stage(
-            ActionType.SET_EXECUTE_GUARD(new_guard, sack=self, parent=parent)
+            ActionType.SET_EXECUTE_GUARD(new_guard, van=self, parent=parent)
         )
 
     @execute_guard.setter
@@ -410,4 +410,4 @@ class Caravan(ManagerAccessMixin):
     #### Normal transactions (uses `Execute` message type)
 
     def new_batch(self, parent: HexBytes | None = None) -> Execute:
-        return Execute.new(sack=self, parent=parent)
+        return Execute.new(van=self, parent=parent)

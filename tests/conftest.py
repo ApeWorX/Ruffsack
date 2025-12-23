@@ -73,8 +73,8 @@ def singleton(VERSION, factory, create_release):
 
 
 @pytest.fixture(scope="session")
-def new_sack(deployer, factory, create_release):
-    def new_sack(
+def new_van(deployer, factory, create_release):
+    def new_van(
         owners: list["AccountAPI"],
         threshold: int,
         version: Version | None = None,
@@ -83,14 +83,14 @@ def new_sack(deployer, factory, create_release):
         if not factory.get_release(version):
             create_release(version, deployer)
 
-        sack = factory.new(owners, threshold, version=version, **txn_args)
+        van = factory.new(owners, threshold, version=version, **txn_args)
         # NOTE: Make sure to use empty queue for testing
-        sack.queue = QueueManager()
-        return sack
+        van.queue = QueueManager()
+        return van
 
-    return new_sack
+    return new_van
 
 
 @pytest.fixture(scope="session")
-def sack(VERSION, owners, THRESHOLD, new_sack):
-    return new_sack(owners, THRESHOLD, version=VERSION, sender=owners[0])
+def van(VERSION, owners, THRESHOLD, new_van):
+    return new_van(owners, THRESHOLD, version=VERSION, sender=owners[0])
