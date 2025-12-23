@@ -22,6 +22,7 @@ from .packages import PackageType
 
 if TYPE_CHECKING:
     from ape.api.accounts import AccountAPI
+    from ape.api.networks import NetworkAPI
 
     from .main import Ruffsack
 
@@ -506,7 +507,7 @@ def deploy():
 
 @deploy.command(cls=ConnectedProviderCommand)
 @account_option()
-def factory(account: "AccountAPI"):
+def factory(network: "NetworkAPI", account: "AccountAPI"):
     """Deploy Proxy Factory to the specified network"""
 
     try:
@@ -523,11 +524,18 @@ def factory(account: "AccountAPI"):
         f"{factory.contract_type.name} deployed to {factory.address}", fg="green"
     )
 
+    if network.explorer:
+        click.secho(f"Publishing to {network.explorer.name}", fg="green")
+        try:
+            network.explorer.publish_contract(factory)
+        except Exception as e:
+            raise click.UsageError(f"Unable to verify {factory}") from e
+
 
 @deploy.command(cls=ConnectedProviderCommand)
 @version_option()
 @account_option()
-def singleton(version: Version, account: "AccountAPI"):
+def singleton(network: "NetworkAPI", version: Version, account: "AccountAPI"):
     """Deploy the given version of singleton contract"""
 
     try:
@@ -545,3 +553,10 @@ def singleton(version: Version, account: "AccountAPI"):
         f"{singleton.contract_type.name} v{version} deployed to {singleton.address}",
         fg="green",
     )
+
+    if network.explorer:
+        click.secho(f"Publishing to {network.explorer.name}", fg="green")
+        try:
+            network.explorer.publish_contract(singleton)
+        except Exception as e:
+            raise click.UsageError(f"Unable to verify {singleton}") from e
