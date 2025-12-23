@@ -93,6 +93,24 @@ def eip712Domain() -> (
     )
 
 
+@view
+def _DOMAIN_SEPARATOR() -> bytes32:
+    return keccak256(
+        abi_encode(EIP712_DOMAIN_TYPEHASH, NAMEHASH, VERSIONHASH, chain.id, self)
+    )
+
+
+@view
+@external
+def DOMAIN_SEPARATOR() -> bytes32:
+    return self._DOMAIN_SEPARATOR()
+
+
+@view
+def _hash_typed_data_v4(struct_hash: bytes32) -> bytes32:
+    return keccak256(concat(x"1901", self._DOMAIN_SEPARATOR(), struct_hash))
+
+
 @external
 def initialize(signers: DynArray[address, 11], threshold: uint256):
     assert self.IMPLEMENTATION != empty(address)  # dev: only Proxy can initialize
@@ -101,6 +119,23 @@ def initialize(signers: DynArray[address, 11], threshold: uint256):
 
     self._signers = signers
     self.threshold = threshold
+
+    # NOTE: Initialize head to non-zero, network-specific value as if this action was performed
+    self.head = self._hash_typed_data_v4(
+        keccak256(
+            abi_encode(
+                MODIFY_TYPEHASH,
+                empty(bytes32),
+                ICaravan.ActionType.ROTATE_SIGNERS,
+                # NOTE: Per EIP712, Dynamic structures are encoded as the hash of their contents
+                keccak256(
+                    abi_encode(
+                        signers, empty(DynArray[address, 11]), threshold
+                    )
+                ),
+            )
+        )
+    )
 
 
 @view
@@ -146,24 +181,6 @@ def _verify_signatures(msghash: bytes32, signatures: DynArray[Bytes[65], 11]):
         assert signer in signers, "Invalid Signer"
         assert signer not in already_approved, "Signer cannot approve twice"
         already_approved.append(signer)
-
-
-@view
-def _DOMAIN_SEPARATOR() -> bytes32:
-    return keccak256(
-        abi_encode(EIP712_DOMAIN_TYPEHASH, NAMEHASH, VERSIONHASH, chain.id, self)
-    )
-
-
-@view
-@external
-def DOMAIN_SEPARATOR() -> bytes32:
-    return self._DOMAIN_SEPARATOR()
-
-
-@view
-def _hash_typed_data_v4(struct_hash: bytes32) -> bytes32:
-    return keccak256(concat(x"1901", self._DOMAIN_SEPARATOR(), struct_hash))
 
 
 def _rotate_signers(

@@ -107,7 +107,7 @@ class QueueManager(BaseModel):
 
     # QueueItem => list[QueueItem.hash]
     queue: dict[QueueItem, list[HexBytes]] = dict()
-    base: HexBytes = HexBytes("00" * 32)
+    base: HexBytes  # NOTE: Must always provide head!
 
     @model_validator(mode="after")
     def ensure_base(self) -> Self:

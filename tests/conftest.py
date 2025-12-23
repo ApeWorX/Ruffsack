@@ -85,7 +85,7 @@ def new_van(deployer, factory, create_release):
 
         van = factory.new(owners, threshold, version=version, **txn_args)
         # NOTE: Make sure to use empty queue for testing
-        van.queue = QueueManager()
+        van.queue = QueueManager(base=van.head)
         return van
 
     return new_van
