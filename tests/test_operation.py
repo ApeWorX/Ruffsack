@@ -1,6 +1,8 @@
 import ape
 import pytest
 
+from caravan.messages import ActionType
+
 
 def test_configuration(networks, van, VERSION, THRESHOLD, owners):
     assert set(van.signers) == set(o.address for o in owners)
@@ -19,6 +21,20 @@ def test_configuration(networks, van, VERSION, THRESHOLD, owners):
     assert address == van.address
     assert salt == b"\x00" * 32
     assert extensions == []
+
+    # NOTE: Initial head should be as if it did a ROTATE_SIGNERS modification
+    assert (
+        van.head
+        == ActionType.ROTATE_SIGNERS(
+            [o.address for o in owners],
+            [],
+            THRESHOLD,
+            address=address,
+            chain_id=chain_id,
+            version=version,
+            parent=b"\x00" * 32,
+        ).hash
+    )
 
 
 def test_initialize(singleton, van, THRESHOLD, owners):

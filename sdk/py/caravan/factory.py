@@ -33,7 +33,7 @@ class Factory(ManagerAccessMixin):
         self._cached_releases: dict[Version, "ContractInstance"] = {
             # NOTE: This is the deterministic deployment address for v1 via CreateX
             Version("1"): PackageType.SINGLETON("1").at(
-                "0xf7AC37e8A31Da4D2Fbe7687118c142dd46e63517"
+                "0xB810c65972596d213DCdf0A73b27fa7be59Ef3E2"
             ),
         }
 
