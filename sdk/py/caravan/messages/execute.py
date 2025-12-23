@@ -10,6 +10,7 @@ from pydantic import BaseModel, PrivateAttr
 
 if TYPE_CHECKING:
     from ape.api import ReceiptAPI
+    from ape.api.address import BaseAddress
     from ape.types import AddressType
     from packaging.version import Version
 
@@ -74,8 +75,8 @@ class Execute(EIP712Message, ManagerAccessMixin):
 
     def add_raw(
         self,
-        target: "AddressType",
-        value: int = 0,
+        target: "BaseAddress | AddressType | str",
+        value: str | int = 0,
         success_required: bool = True,
         data: HexBytes = b"",
     ) -> Self:
@@ -90,10 +91,13 @@ class Execute(EIP712Message, ManagerAccessMixin):
                 f" {self.MAX_CALLDATA_SIZE} bytes."
             )
 
+        # NOTE: Avoid imports otherwise just for typing
+        from ape.types import AddressType
+
         self.calls.append(
             Call(
-                target=target,
-                value=value,
+                target=self.conversion_manager.convert(target, AddressType),
+                value=self.conversion_manager.convert(value, int),
                 success_required=success_required,
                 data=data,
             )
@@ -102,7 +106,7 @@ class Execute(EIP712Message, ManagerAccessMixin):
 
     def add(self, call, *args, value: int = 0, success_required: bool = True) -> Self:
         return self.add_raw(
-            target=call.contract.address,
+            target=call.contract,
             value=value,
             success_required=success_required,
             data=call.encode_input(*args),
