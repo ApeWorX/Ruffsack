@@ -2,7 +2,7 @@ import math
 from typing import TYPE_CHECKING
 import runpy
 
-from ape.exceptions import ConversionError
+from ape.exceptions import AccountsError, ConversionError
 import click
 from ape.cli import ConnectedProviderCommand, account_option
 from ape.cli import ape_cli_context
@@ -294,15 +294,15 @@ def run(cli_ctx, network, proposer, submit, stop_at, ruffsack):
 
 @cli.group()
 def sudo():
-    """Manage the Ruffsack system contracts [ADVANCED]"""
+    """Manage the system contracts [ADVANCED]"""
 
 
 @sudo.group()
 def deploy():
     """
-    Deploy the Ruffsack system contracts
+    Deploy the system contracts
 
-    NOTE: **Anyone can deploy these** (if CreateX is supported)
+    NOTE: **Anyone can deploy these** (if CreateX is supported on network)
     """
 
 
@@ -311,22 +311,19 @@ def deploy():
 def factory(account: "AccountAPI"):
     """Deploy Proxy Factory to the specified network"""
 
-    proxy_initcode = PackageType.PROXY().contract_type.get_deployment_bytecode()
-
     try:
-        createx = CreateX()
-    except RuntimeError:
-        createx = CreateX.inject()
+        factory = PackageType.FACTORY.deploy(sender=account)
 
-    factory = createx.deploy(
-        PackageType.FACTORY(),
-        proxy_initcode,
-        sender=account,
-        sender_protection=False,
-        redeploy_protection=False,
-        salt="Ruffsack Factory",
+    except AccountsError:
+        click.echo(
+            click.style("WARNING:", fg="yellow") + "  Using non-determinstic deployment"
+        )
+        proxy_initcode = PackageType.PROXY().contract_type.get_deployment_bytecode()
+        factory = PackageType.FACTORY().deploy(proxy_initcode, sender=account)
+
+    click.secho(
+        f"{factory.contract_type.name} deployed to {factory.address}", fg="green"
     )
-    click.secho(f"Factory deployed to {factory.address}", fg="green")
 
 
 @deploy.command(cls=ConnectedProviderCommand)
@@ -336,16 +333,17 @@ def singleton(version: Version, account: "AccountAPI"):
     """Deploy the given version of singleton contract"""
 
     try:
-        createx = CreateX()
-    except RuntimeError:
-        createx = CreateX.inject()
+        singleton = PackageType.SINGLETON.deploy(version=version, sender=account)
 
-    singleton = createx.deploy(
-        PackageType.SINGLETON(version),
-        str(version),
-        sender=account,
-        sender_protection=False,
-        redeploy_protection=False,
-        salt=f"Ruffsack v{version}",
+    except AccountsError:
+        click.echo(
+            click.style("WARNING:", fg="yellow") + "  Using non-determinstic deployment"
+        )
+        singleton = PackageType.SINGLETON(version=version).deploy(
+            str(version), sender=account
+        )
+
+    click.secho(
+        f"{singleton.contract_type.name} v{version} deployed to {singleton.address}",
+        fg="green",
     )
-    click.secho(f"Ruffsack v{version} deployed to {singleton.address}", fg="green")

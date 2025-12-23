@@ -1,9 +1,13 @@
 from enum import Enum
 from importlib import resources
+from typing import TYPE_CHECKING
 
 from ape.contracts import ContractContainer
 from ethpm_types import PackageManifest
 from packaging.version import Version
+
+if TYPE_CHECKING:
+    from ape.api import ReceiptAPI
 
 MANIFESTS = {
     Version(
@@ -41,3 +45,41 @@ class PackageType(str, Enum):
             raise ValueError(f"Unknown type in package v{version}: {self.value}")
 
         return ContractContainer(contract_type)
+
+    def deploy(
+        self, version: Version | str = STABLE_VERSION, **txn_args
+    ) -> "ReceiptAPI":
+        from createx.main import CreateX
+
+        try:
+            createx = CreateX()
+        except RuntimeError:
+            createx = CreateX.inject()
+
+        Type = self(version=version)
+
+        match self:
+            case PackageType.SINGLETON:
+                call_args = [str(version)]
+                salt = f"{__package__}:{Type.name} v{version}"
+
+            case PackageType.FACTORY:
+                proxy_initcode = (
+                    PackageType.PROXY().contract_type.get_deployment_bytecode()
+                )
+                call_args = [proxy_initcode]
+                # NOTE: The factory should never change between versions
+                salt = f"{__package__}:{Type.name}"
+
+            case _:
+                raise RuntimeError(f"Do not deploy {self.name} directly!")
+
+        return createx.deploy(
+            Type,
+            *call_args,
+            salt=salt,
+            # NOTE: We want anyone to deploy this on the same address on any chain
+            sender_protection=False,
+            redeploy_protection=False,
+            **txn_args,
+        )
