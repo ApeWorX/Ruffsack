@@ -91,6 +91,67 @@ def new_wallet(network, version, threshold, tag, signers, account):
     )
     click.secho(f"RuffsackProxy deployed: {sack.address}", fg="green")
 
+    if network.is_local:
+        return  # NOTE: Do not track emphemeral wallets
+
+    elif (wallet_file := USER_CONFIG_DIR / f"{sack.address}.json").exists():
+        chain_ids = json.loads(wallet_file.read_text())
+        chain_ids.append(network.chain_id)
+        wallet_file.write_text(json.dumps(sorted(chain_ids)))
+    else:
+        wallet_file.write_text(json.dumps([network.chain_id]))
+
+
+@cli.command(name="track")
+@click.argument("address")
+@click.argument("chain_ids", type=int, nargs=-1)
+def track_wallet(address: AddressType, chain_ids: list[int]):
+    """Track existing Wallet by ADDRESS"""
+
+    if (wallet_file := USER_CONFIG_DIR / f"{address}.json").exists():
+        raise click.UsageError("Cannot overwrite existing tracked wallet")
+
+    elif not chain_ids:
+        raise click.UsageError("Include at least 1 chain ID")
+
+    wallet_file.write_text(json.dumps(chain_ids))
+
+
+@cli.command(name="list")
+@network_option(default=None)
+def list_wallets(network):
+    """List locally-tracked Wallets"""
+
+    wallets_found = False
+    for wallet_file in USER_CONFIG_DIR.glob("*.json"):
+        chain_ids = json.loads(wallet_file.read_text())
+        if network is None:
+            click.echo(wallet_file.stem)
+            wallets_found = True
+        elif network.chain_id in chain_ids:
+            click.echo(wallet_file.stem)
+            wallets_found = True
+
+    if not wallets_found:
+        if network is None:
+            click.secho("No wallets being tracked!", fg="red")
+
+        else:
+            network_str = f"{network.ecosystem.name}:{network.name}"
+            click.secho(f"No wallets being tracked on '{network_str}'!", fg="red")
+
+
+@cli.command(name="unlink")
+@click.argument("address")
+def unlink_wallet(address: AddressType):
+    """Stop tracking wallet ADDRESS"""
+
+    if not (wallet_file := USER_CONFIG_DIR / f"{address}.json").exists():
+        raise click.UsageError("Cannot remove un-tracked wallet")
+
+    elif click.confirm(f"Stop tracking {address}?"):
+        wallet_file.unlink()
+
 
 @cli.group()
 def config():
