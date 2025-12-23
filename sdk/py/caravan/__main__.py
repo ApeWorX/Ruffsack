@@ -92,7 +92,7 @@ def new_wallet(network, version, threshold, tag, signers, account):
     )
     click.secho(f"CaravanProxy deployed: {van.address}", fg="green")
 
-    if network.is_local:
+    if network.is_dev:
         return  # NOTE: Do not track emphemeral wallets
 
     elif (wallet_file := USER_CONFIG_DIR / f"{van.address}.json").exists():
@@ -514,7 +514,7 @@ def factory(network: "NetworkAPI", account: "AccountAPI"):
         factory = PackageType.FACTORY.deploy(sender=account)
 
     except AccountsError as e:
-        if not network.is_local:
+        if not network.is_dev:
             raise click.UsageError(
                 "CreateX (https://createx.rocks) is not available on this chain."
             ) from e
@@ -529,7 +529,7 @@ def factory(network: "NetworkAPI", account: "AccountAPI"):
         f"{factory.contract_type.name} deployed to {factory.address}", fg="green"
     )
 
-    if network.explorer:
+    if not network.is_dev and network.explorer:
         click.secho(f"Publishing to {network.explorer.name}", fg="green")
         try:
             network.explorer.publish_contract(factory)
@@ -547,7 +547,7 @@ def singleton(network: "NetworkAPI", version: Version, account: "AccountAPI"):
         singleton = PackageType.SINGLETON.deploy(version=version, sender=account)
 
     except AccountsError as e:
-        if not network.is_local:
+        if not network.is_dev:
             raise click.UsageError(
                 "CreateX (https://createx.rocks) is not available on this chain."
             ) from e
@@ -564,7 +564,7 @@ def singleton(network: "NetworkAPI", version: Version, account: "AccountAPI"):
         fg="green",
     )
 
-    if network.explorer:
+    if not network.is_dev and network.explorer:
         click.secho(f"Publishing to {network.explorer.name}", fg="green")
         try:
             network.explorer.publish_contract(singleton)

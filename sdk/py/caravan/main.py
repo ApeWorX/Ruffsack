@@ -198,7 +198,7 @@ class Caravan(ManagerAccessMixin):
         # TODO: Add logging?
         self.queue.add(item := QueueItem(message=msg, signatures=signatures))
 
-        if not self.provider.network.is_local:
+        if not self.provider.network.is_dev:
             # NOTE: Don't save permanent changes on ephemeral networks
             self.queue.save()
 
@@ -235,7 +235,7 @@ class Caravan(ManagerAccessMixin):
         fn = getattr(self.contract, msg.__class__.__name__.lower())
         receipt = fn(*fn_args, **txn_args)
 
-        if not self.provider.network.is_local:
+        if not self.provider.network.is_dev:
             # NOTE: Don't save permanent changes on ephemeral networks
             self.queue.rebase(self.head)
             self.queue.save()
@@ -268,7 +268,7 @@ class Caravan(ManagerAccessMixin):
 
         receipt = txn(**txn_args)
 
-        if not self.provider.network.is_local:
+        if not self.provider.network.is_dev:
             # NOTE: Don't save permanent changes on ephemeral networks
             self.queue.rebase(self.head)
             self.queue.save()

@@ -143,7 +143,7 @@ class Execute(EIP712Message, ManagerAccessMixin):
 
         with (
             self.chain_manager.isolate()
-            if self.provider.network.is_local
+            if self.provider.network.is_dev
             else self.network_manager.fork()
         ):
             with self.account_manager.use_sender(self._van.address) as van_account:
